@@ -1,13 +1,12 @@
-// 単語リスト
+// ----------------------------
+// 1. 問題生成
+// ----------------------------
 const nouns = ["ねこ","いぬ","とり","ひと","やま","かわ","まち","くるま","でんしゃ","がっこう"];
 const verbs = ["あるく","はしる","たべる","のむ","みる","きく","かく","つかう","つくる","すわる"];
 const adjectives = ["おおきい","ちいさい","たのしい","かなしい","あかるい","くらい","あたらしい","ふるい"];
 const particles = ["が","を","で","に","から","まで","と"];
 
-// ランダム選択
 function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-
-// 文生成
 function generateSentence(){
   const templates = [
     ()=>`${choice(nouns)}${choice(particles)} ${choice(verbs)}。`,
@@ -16,23 +15,21 @@ function generateSentence(){
   ];
   return templates[Math.floor(Math.random()*templates.length)]();
 }
-
-// 長文（5〜10文）
 function generateParagraph(){
   const count = Math.floor(Math.random()*6)+5;
-  let p = "";
+  let p="";
   for(let i=0;i<count;i++) p += generateSentence()+" ";
   return p.trim();
 }
-
-// 問題セット
 function generateProblems(count){
   let problems=[];
   for(let i=0;i<count;i++) problems.push(generateParagraph());
   return problems;
 }
 
-// DOM
+// ----------------------------
+// 2. DOM
+// ----------------------------
 const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
 const startScreen = document.getElementById("startScreen");
@@ -46,26 +43,73 @@ const speed = document.getElementById("speed");
 const avgTime = document.getElementById("avgTime");
 const avgAccuracy = document.getElementById("avgAccuracy");
 const avgSpeed = document.getElementById("avgSpeed");
+const keyboardDiv = document.getElementById("keyboard");
 
 let problems=[], current=0, startTime=null;
 let totalTime=0, totalAccuracy=0, totalSpeed=0;
 
-// 出題
+// ----------------------------
+// 3. キーボード生成
+// ----------------------------
+const normalRows = [
+  ["ぬ","ふ","あ","う","え","お","や","ゆ","よ","わ","ほ","゜"],
+  ["た","て","い","す","か","ん","な","に","ら","せ","゛","む","へ"],
+  ["ち","と","し","は","き","く","ま","の","り","れ","け"],
+  ["つ","さ","そ","ひ","こ","み","も","ね","る","め"],
+  ["Shift","ゃ","ゅ","ょ","Space","Enter","Backspace"]
+];
+
+const shiftRows = [
+  ["ぬ","ふ","あ","う","え","お","や","ゆ","よ","わ","ほ","「"],
+  ["た","て","い","す","か","ん","な","に","ら","せ","」","ー","へ"],
+  ["ち","と","し","は","き","く","ま","の","り","れ","ろ"],
+  ["っ","さ","そ","ひ","こ","み","も","、","。","・"],
+  ["Shift","ゃ","ゅ","ょ","Space","Enter","Backspace"]
+];
+
+let shiftPressed = false;
+
+function renderKeyboard(rows){
+  const homeKeys = ["は","ま"]; // ホームポジション
+  keyboardDiv.innerHTML = "";
+  rows.forEach(row=>{
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "row";
+    row.forEach(k=>{
+      const span = document.createElement("span");
+      span.className = k.length>1 ? "key special" : "key";
+      if(homeKeys.includes(k)) span.classList.add("home"); // ホームキー用クラス追加
+      span.dataset.key = k;
+      span.textContent = k==="Space"?"␣":k;
+      rowDiv.appendChild(span);
+    });
+    keyboardDiv.appendChild(rowDiv);
+  });
+}
+
+// 初期描画
+renderKeyboard(normalRows);
+
+// ----------------------------
+// 4. 出題
+// ----------------------------
 function showProblem(){
   const text = problems[current];
-  problemDiv.innerHTML = "";
+  problemDiv.innerHTML="";
   for(let ch of text){
     const span = document.createElement("span");
-    span.textContent = ch;
+    span.textContent=ch;
     problemDiv.appendChild(span);
   }
   input.value="";
   input.focus();
-  startTime = null;
+  startTime=null;
   qNum.textContent = current+1;
 }
 
-// 入力判定
+// ----------------------------
+// 5. 入力判定
+// ----------------------------
 input.addEventListener("input",()=>{
   if(!startTime) startTime = Date.now();
   const text = problems[current];
@@ -75,10 +119,8 @@ input.addEventListener("input",()=>{
 
   spans.forEach((span,i)=>{
     if(i<typed.length){
-      if(typed[i]===span.textContent){
-        span.className="correct";
-        correct++;
-      }else span.className="wrong";
+      if(typed[i]===span.textContent){ span.className="correct"; correct++; }
+      else span.className="wrong";
     }else span.className="";
   });
 
@@ -101,7 +143,9 @@ input.addEventListener("input",()=>{
   }
 });
 
-// スコア画面
+// ----------------------------
+// 6. スコア画面
+// ----------------------------
 function showScore(){
   gameArea.style.display="none";
   scoreScreen.style.display="block";
@@ -110,7 +154,9 @@ function showScore(){
   avgSpeed.textContent = (totalSpeed/problems.length).toFixed(0);
 }
 
-// スタート
+// ----------------------------
+// 7. スタート / リスタート
+// ----------------------------
 startBtn.addEventListener("click",()=>{
   const count = parseInt(document.getElementById("questionCount").value);
   problems = generateProblems(count);
@@ -121,9 +167,33 @@ startBtn.addEventListener("click",()=>{
   showProblem();
 });
 
-// リスタート
 restartBtn.addEventListener("click",()=>{
   startScreen.style.display="block";
   gameArea.style.display="none";
   scoreScreen.style.display="none";
+});
+
+// ----------------------------
+// 8. キー光らせる
+// ----------------------------
+document.addEventListener("keydown",(e)=>{
+  const key = e.key===" "? "Space" : e.key==="Enter"?"Enter":e.key;
+  if(e.key==="Shift") {
+    shiftPressed = true;
+    renderKeyboard(shiftRows);
+  }
+  document.querySelectorAll(".key").forEach(k=>{
+    if(k.dataset.key===key) k.classList.add("active");
+  });
+});
+
+document.addEventListener("keyup",(e)=>{
+  const key = e.key===" "? "Space" : e.key==="Enter"?"Enter":e.key;
+  if(e.key==="Shift") {
+    shiftPressed = false;
+    renderKeyboard(normalRows);
+  }
+  document.querySelectorAll(".key").forEach(k=>{
+    if(k.dataset.key===key) k.classList.remove("active");
+  });
 });

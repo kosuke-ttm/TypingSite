@@ -1,40 +1,43 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>かな入力タイピング練習（ゲーム風）</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>完全版 かな入力タイピングゲーム</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>🎮 かな入力タイピング練習 🎮</h1>
+<h1>🎮 かな入力タイピングゲーム（フルキーボード）🎮</h1>
 
-  <!-- スタート画面 -->
-  <div id="startScreen">
-    <p>問題数を入力してください：</p>
-    <input type="number" id="questionCount" min="1" value="5">
-    <button id="startBtn">スタート</button>
+<!-- スタート画面 -->
+<div id="startScreen">
+  <p>問題数を入力してください：</p>
+  <input type="number" id="questionCount" min="1" value="5">
+  <button id="startBtn">スタート</button>
+</div>
+
+<!-- ゲーム画面 -->
+<div id="gameArea" style="display:none;">
+  <div id="problem"></div>
+  <input type="text" id="input" autocomplete="off" autofocus>
+  <div id="status">
+    <p>問題番号: <span id="questionNumber">1</span></p>
+    <p>正確さ: <span id="accuracy">100%</span></p>
+    <p>速度: <span id="speed">0 文字/分</span></p>
   </div>
 
-  <!-- ゲーム画面 -->
-  <div id="gameArea" style="display:none;">
-    <div id="problem"></div>
-    <input type="text" id="input" autocomplete="off" autofocus>
-    <div id="status">
-      <p>問題番号: <span id="questionNumber">1</span></p>
-      <p>正確さ: <span id="accuracy">100%</span></p>
-      <p>速度: <span id="speed">0 文字/分</span></p>
-    </div>
-  </div>
+  <!-- 仮想キーボード -->
+  <div id="keyboard"></div>
+</div>
 
-  <!-- スコア画面 -->
-  <div id="scoreScreen" style="display:none;">
-    <h2>🎉 全問クリア！ 🎉</h2>
-    <p>平均時間: <span id="avgTime"></span> 秒</p>
-    <p>平均正確さ: <span id="avgAccuracy"></span>%</p>
-    <p>平均速度: <span id="avgSpeed"></span> 文字/分</p>
-    <button id="restartBtn">もう一度プレイ</button>
-  </div>
+<!-- スコア画面 -->
+<div id="scoreScreen" style="display:none;">
+  <h2>🎉 全問クリア！ 🎉</h2>
+  <p>平均時間: <span id="avgTime"></span> 秒</p>
+  <p>平均正確さ: <span id="avgAccuracy"></span>%</p>
+  <p>平均速度: <span id="avgSpeed"></span> 文字/分</p>
+  <button id="restartBtn">もう一度プレイ</button>
+</div>
 
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
