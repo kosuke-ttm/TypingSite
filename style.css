@@ -1,0 +1,82 @@
+body {
+  font-family: "メイリオ", monospace;
+  text-align: center;
+  padding: 40px;
+  background: linear-gradient(-45deg, #ff6ec4, #7873f5, #42e695, #ffeb3b);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  color: #fff;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+h1 {
+  text-shadow: 2px 2px 6px #000;
+}
+
+#problem {
+  font-size: 24px;
+  margin: 20px auto;
+  padding: 20px;
+  border-radius: 15px;
+  width: 80%;
+  background: rgba(0,0,0,0.6);
+  color: #eee;
+}
+
+.correct {
+  color: #00ff00;
+  text-shadow: 0 0 8px #00ff00, 0 0 12px #00ff00;
+  transition: all 0.1s;
+}
+
+.wrong {
+  color: #ff5555;
+  text-shadow: 0 0 8px #ff5555, 0 0 12px #ff5555;
+  animation: blink 0.3s alternate infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+#input {
+  font-size: 20px;
+  padding: 10px;
+  width: 80%;
+  border-radius: 8px;
+  border: 2px solid #0f0;
+  background: #111;
+  color: #fff;
+}
+
+button {
+  font-size: 18px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #ff9800;
+  color: #fff;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #e68900;
+}
+
+#scoreScreen h2, #scoreScreen p {
+  text-shadow: 0 0 10px #fff, 0 0 20px #ff0;
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  0% { text-shadow: 0 0 5px #fff, 0 0 10px #ff0; }
+  100% { text-shadow: 0 0 20px #fff, 0 0 40px #ff0; }
+}
