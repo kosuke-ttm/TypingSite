@@ -42,6 +42,15 @@ h1 {text-shadow:2px 2px 6px #000;}
 
 #keyboard { margin-top:30px; display:inline-block; }
 .row { margin:5px 0; }
+.row.indent-first {
+  margin-right: 80px; /* ここで右にずらす */
+}
+.row.indent-third {
+  margin-right: 30px; /* ここで右にずらす */
+}
+.row.indent-forth {
+  margin-right: 30px; /* ここで右にずらす */
+}
 .key {
   display:inline-block;
   width:40px; height:40px; margin:2px; border-radius:5px;
@@ -49,7 +58,7 @@ h1 {text-shadow:2px 2px 6px #000;}
   text-align:center; user-select:none; box-shadow:0 0 5px #000;
   transition:all 0.1s;
 }
-.key.special { width:80px; background:#555; }
+.key.special { width:40px; background:#555; font-size: 7px;}
 .key.active { background:#ff0; color:#000; text-shadow:0 0 10px #fff; }
 .key.home {
   background-color: #ffd700; /* ゴールドで目立たせる */

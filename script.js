@@ -60,8 +60,8 @@ const normalRows = [
 ];
 
 const shiftRows = [
-  ["ぬ","ふ","あ","う","え","お","や","ゆ","よ","わ","ほ","「"],
-  ["た","て","い","す","か","ん","な","に","ら","せ","」","ー","へ"],
+  ["ぬ","ふ","ぁ","ぅ","ぇ","ぉ","ゃ","ゅ","ょ","を","ほ","「"],
+  ["た","て","ぃ","す","か","ん","な","に","ら","せ","」","ー","へ"],
   ["ち","と","し","は","き","く","ま","の","り","れ","ろ"],
   ["っ","さ","そ","ひ","こ","み","も","、","。","・"],
   ["Shift","ゃ","ゅ","ょ","Space","Enter","Backspace"]
@@ -72,13 +72,28 @@ let shiftPressed = false;
 function renderKeyboard(rows){
   const homeKeys = ["は","ま"]; // ホームポジション
   keyboardDiv.innerHTML = "";
-  rows.forEach(row=>{
+  rows.forEach((row,rowIndex)=>{
     const rowDiv = document.createElement("div");
     rowDiv.className = "row";
+
+    // 1行目を左にずらす
+    if(rowIndex === 0){
+      rowDiv.classList.add("indent-first");
+    }
+    // 3行目を左にずらす
+    if(rowIndex === 2){ 
+      rowDiv.classList.add("indent-third");
+    }
+
+    // 4行目を右にずらす
+    if(rowIndex === 3){ 
+      rowDiv.classList.add("indent-forth");
+    }
+
     row.forEach(k=>{
       const span = document.createElement("span");
       span.className = k.length>1 ? "key special" : "key";
-      if(homeKeys.includes(k)) span.classList.add("home"); // ホームキー用クラス追加
+      if(homeKeys.includes(k)) span.classList.add("home"); 
       span.dataset.key = k;
       span.textContent = k==="Space"?"␣":k;
       rowDiv.appendChild(span);
