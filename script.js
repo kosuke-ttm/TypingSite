@@ -1,29 +1,29 @@
 // ----------------------------
-// 1. 問題生成
+// 1. 単語問題生成
 // ----------------------------
-const nouns = ["ねこ","いぬ","とり","ひと","やま","かわ","まち","くるま","でんしゃ","がっこう"];
-const verbs = ["あるく","はしる","たべる","のむ","みる","きく","かく","つかう","つくる","すわる"];
-const adjectives = ["おおきい","ちいさい","たのしい","かなしい","あかるい","くらい","あたらしい","ふるい"];
-const particles = ["が","を","で","に","から","まで","と"];
+
+// 単語リスト（例として簡略化。実際は1000個以上用意）
+const words = [
+  "ねこ","いぬ","とり","ひと","やま","かわ","まち","くるま","でんしゃ","がっこう",
+  "さかな","はな","くさ","とけい","ほん","つくえ","いす","みず","そら","たいよう",
+  "き","み","あし","はし","かぜ","ゆき","ひかり","つき","ほし","かお",
+  "みみ","くち","め","て","あたま","てんき","そと","うみ","やさい","くだもの",
+  "さくら","もも","ばら","うめ","きりん","ぞう","さる","とら","うま","ねずみ",
+  "とけい","はなび","かばん","えんぴつ","じしょ","がっき","ほんだな","まくら","いえ","へや",
+  "みせ","えき","こうえん","びょういん","がっこう","しんぶん","でんわ",
+  "えいが","うた","おんがく","しごと","やすみ","きょう","あした","きのう","せんせい","がくせい",
+  "ともだち","かぞく","いしゃ","けんきゅうしゃ","せいと","せんぱい","こうはい","かいしゃ","まち","むら",
+  "かわ","うみ","やま","もり","はな","き","くさ","そら","たいよう","つき"
+];
 
 function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function generateSentence(){
-  const templates = [
-    ()=>`${choice(nouns)}${choice(particles)}${choice(verbs)}。`,
-    ()=>`${choice(nouns)}${choice(particles)}${choice(adjectives)}ので、${choice(nouns)}${choice(particles)}${choice(verbs)}。`,
-    ()=>`${choice(nouns)}${choice(particles)}${choice(verbs)}て、${choice(nouns)}${choice(particles)}${choice(verbs)}。`
-  ];
-  return templates[Math.floor(Math.random()*templates.length)]();
-}
-function generateParagraph(){
-  const count = Math.floor(Math.random()*6)+5;
-  let p="";
-  for(let i=0;i<count;i++) p += generateSentence();
-  return p.trim();
-}
+
+// 問題を単語単位で生成
 function generateProblems(count){
-  let problems=[];
-  for(let i=0;i<count;i++) problems.push(generateParagraph());
+  let problems = [];
+  for(let i=0;i<count;i++){
+    problems.push(choice(words)); // 1問 = 単語1つ
+  }
   return problems;
 }
 
@@ -67,6 +67,12 @@ const shiftRows = [
   ["Shift","ゃ","ゅ","ょ","Space","Enter","Backspace"]
 ];
 
+
+// 濁点付き文字を分解（NFD）
+function baseChar(char) {
+  return char.normalize("NFD")[0]; // 先頭の基本文字を取得
+}
+
 function highlightNextKey() {
   // まず全部リセット
   document.querySelectorAll(".key").forEach(k => k.classList.remove("next"));
@@ -74,11 +80,14 @@ function highlightNextKey() {
   const text = problems[current];
   const typed = input.value;
 
-  // まだ残りがあれば次の1文字を取得
   if (typed.length < text.length) {
     const nextChar = text[typed.length];
-    // スペースや改行など特殊キー対応
-    let keyName = nextChar === " " ? "Space" : nextChar === "\n" ? "Enter" : nextChar;
+
+    // 濁点・半濁点を分解してベース文字を取得
+    let base = baseChar(nextChar);
+
+    // 特殊キー対応
+    let keyName = base === " " ? "Space" : base === "\n" ? "Enter" : base;
 
     const target = [...document.querySelectorAll(".key")].find(k => k.dataset.key === keyName);
     if (target) target.classList.add("next");
@@ -94,19 +103,10 @@ function renderKeyboard(rows){
     const rowDiv = document.createElement("div");
     rowDiv.className = "row";
 
-    // 1行目を左にずらす
-    if(rowIndex === 0){
-      rowDiv.classList.add("indent-first");
-    }
-    // 3行目を左にずらす
-    if(rowIndex === 2){ 
-      rowDiv.classList.add("indent-third");
-    }
-
-    // 4行目を右にずらす
-    if(rowIndex === 3){ 
-      rowDiv.classList.add("indent-forth");
-    }
+    // 行ごとのインデント調整
+    if(rowIndex === 0) rowDiv.classList.add("indent-first");
+    if(rowIndex === 2) rowDiv.classList.add("indent-third");
+    if(rowIndex === 3) rowDiv.classList.add("indent-forth");
 
     row.forEach(k=>{
       const span = document.createElement("span");
@@ -122,8 +122,6 @@ function renderKeyboard(rows){
 
 // 初期描画
 renderKeyboard(normalRows);
-
-
 
 // ----------------------------
 // 4. 出題
@@ -141,7 +139,7 @@ function showProblem(){
   startTime=null;
   qNum.textContent = current+1;
 
-  highlightNextKey(); // ★追加
+  highlightNextKey();
 }
 
 // ----------------------------
@@ -178,7 +176,7 @@ input.addEventListener("input",()=>{
     if(current<problems.length) showProblem();
     else showScore();
   }
-  highlightNextKey(); // ★追加
+  highlightNextKey();
 });
 
 // ----------------------------
