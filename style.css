@@ -73,6 +73,19 @@ h1 {text-shadow:2px 2px 6px #000;}
   transform: scale(1.1);
 }
 
+.key.next {
+  background: #0ff;
+  color: #000;
+  text-shadow: 0 0 10px #0ff;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 5px #0ff; }
+  50% { box-shadow: 0 0 20px #0ff; }
+  100% { box-shadow: 0 0 5px #0ff; }
+}
+
 #scoreScreen h2, #scoreScreen p {
   text-shadow:0 0 10px #fff,0 0 20px #ff0;
   animation: glow 1.5s ease-in-out infinite alternate;

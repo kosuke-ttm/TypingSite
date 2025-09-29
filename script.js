@@ -9,16 +9,16 @@ const particles = ["が","を","で","に","から","まで","と"];
 function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function generateSentence(){
   const templates = [
-    ()=>`${choice(nouns)}${choice(particles)} ${choice(verbs)}。`,
-    ()=>`${choice(nouns)}${choice(particles)} ${choice(adjectives)} ので、${choice(nouns)}${choice(particles)} ${choice(verbs)}。`,
-    ()=>`${choice(nouns)}${choice(particles)} ${choice(verbs)} て、${choice(nouns)}${choice(particles)} ${choice(verbs)}。`
+    ()=>`${choice(nouns)}${choice(particles)}${choice(verbs)}。`,
+    ()=>`${choice(nouns)}${choice(particles)}${choice(adjectives)}ので、${choice(nouns)}${choice(particles)}${choice(verbs)}。`,
+    ()=>`${choice(nouns)}${choice(particles)}${choice(verbs)}て、${choice(nouns)}${choice(particles)}${choice(verbs)}。`
   ];
   return templates[Math.floor(Math.random()*templates.length)]();
 }
 function generateParagraph(){
   const count = Math.floor(Math.random()*6)+5;
   let p="";
-  for(let i=0;i<count;i++) p += generateSentence()+" ";
+  for(let i=0;i<count;i++) p += generateSentence();
   return p.trim();
 }
 function generateProblems(count){
@@ -67,6 +67,24 @@ const shiftRows = [
   ["Shift","ゃ","ゅ","ょ","Space","Enter","Backspace"]
 ];
 
+function highlightNextKey() {
+  // まず全部リセット
+  document.querySelectorAll(".key").forEach(k => k.classList.remove("next"));
+
+  const text = problems[current];
+  const typed = input.value;
+
+  // まだ残りがあれば次の1文字を取得
+  if (typed.length < text.length) {
+    const nextChar = text[typed.length];
+    // スペースや改行など特殊キー対応
+    let keyName = nextChar === " " ? "Space" : nextChar === "\n" ? "Enter" : nextChar;
+
+    const target = [...document.querySelectorAll(".key")].find(k => k.dataset.key === keyName);
+    if (target) target.classList.add("next");
+  }
+}
+
 let shiftPressed = false;
 
 function renderKeyboard(rows){
@@ -105,6 +123,8 @@ function renderKeyboard(rows){
 // 初期描画
 renderKeyboard(normalRows);
 
+
+
 // ----------------------------
 // 4. 出題
 // ----------------------------
@@ -120,6 +140,8 @@ function showProblem(){
   input.focus();
   startTime=null;
   qNum.textContent = current+1;
+
+  highlightNextKey(); // ★追加
 }
 
 // ----------------------------
@@ -156,6 +178,7 @@ input.addEventListener("input",()=>{
     if(current<problems.length) showProblem();
     else showScore();
   }
+  highlightNextKey(); // ★追加
 });
 
 // ----------------------------
