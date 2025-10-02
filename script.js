@@ -47,6 +47,43 @@ const keyboardDiv = document.getElementById("keyboard");
 
 let problems=[], current=0, startTime=null;
 let totalTime=0, totalAccuracy=0, totalSpeed=0;
+let targetGraphemes=[]; // 現在の問題文をグラフェム単位に分割した配列
+
+// ----------------------------
+// グラフェム分割 & 正規化ユーティリティ
+// ----------------------------
+const segmenter = (typeof Intl !== "undefined" && Intl.Segmenter)
+  ? new Intl.Segmenter("ja", { granularity: "grapheme" })
+  : null;
+
+function toGraphemes(str){
+  if(segmenter){
+    return Array.from(segmenter.segment(str), s => s.segment);
+  }
+  return Array.from(str);
+}
+
+function toNFC(str){
+  try{ return str.normalize("NFC"); }catch(e){ return str; }
+}
+
+function toNFD(str){
+  try{ return str.normalize("NFD"); }catch(e){ return str; }
+}
+
+function getFirstMismatchIndex(typedG, targetG){
+  const n = Math.min(typedG.length, targetG.length);
+  for(let i=0;i<n;i++){
+    if(toNFC(typedG[i]) !== toNFC(targetG[i])) return i;
+  }
+  return n;
+}
+
+function getDakutenKeyFromNFD(nfd){
+  if(nfd.includes("\u3099")) return "゛"; // combining voiced sound mark -> spacing dakuten
+  if(nfd.includes("\u309A")) return "゜"; // combining semi-voiced -> spacing handakuten
+  return null;
+}
 
 // ----------------------------
 // 3. キーボード生成
@@ -56,7 +93,7 @@ const normalRows = [
   ["た","て","い","す","か","ん","な","に","ら","せ","゛","む","へ"],
   ["ち","と","し","は","き","く","ま","の","り","れ","け"],
   ["つ","さ","そ","ひ","こ","み","も","ね","る","め"],
-  ["Shift","ゃ","ゅ","ょ","Space","Enter","Backspace"]
+  ["Shift","Space","Enter","Backspace"]
 ];
 
 const shiftRows = [
@@ -64,7 +101,7 @@ const shiftRows = [
   ["た","て","ぃ","す","か","ん","な","に","ら","せ","」","ー","へ"],
   ["ち","と","し","は","き","く","ま","の","り","れ","ろ"],
   ["っ","さ","そ","ひ","こ","み","も","、","。","・"],
-  ["Shift","ゃ","ゅ","ょ","Space","Enter","Backspace"]
+  ["Shift","Space","Enter","Backspace"]
 ];
 
 
@@ -77,21 +114,29 @@ function highlightNextKey() {
   // まず全部リセット
   document.querySelectorAll(".key").forEach(k => k.classList.remove("next"));
 
-  const text = problems[current];
-  const typed = input.value;
+  const typedG = toGraphemes(input.value);
 
-  if (typed.length < text.length) {
-    const nextChar = text[typed.length];
+  const idx = getFirstMismatchIndex(typedG, targetGraphemes);
+  if (idx >= targetGraphemes.length) return; // 完了
 
-    // 濁点・半濁点を分解してベース文字を取得
-    let base = baseChar(nextChar);
+  const targetChar = targetGraphemes[idx];
+  const nfd = toNFD(targetChar);
+  const base = baseChar(targetChar);
 
-    // 特殊キー対応
-    let keyName = base === " " ? "Space" : base === "\n" ? "Enter" : base;
-
-    const target = [...document.querySelectorAll(".key")].find(k => k.dataset.key === keyName);
-    if (target) target.classList.add("next");
+  // すでにベースだけ打たれている場合は、次に濁点/半濁点を促す
+  if (typedG[idx] && toNFC(typedG[idx]) === toNFC(base)) {
+    const markKey = getDakutenKeyFromNFD(nfd);
+    if (markKey) {
+      const el = [...document.querySelectorAll(".key")].find(k => k.dataset.key === markKey);
+      if (el) el.classList.add("next");
+      return;
+    }
   }
+
+  // それ以外はベース文字を促す
+  let keyName = base === " " ? "Space" : base === "\n" ? "Enter" : base;
+  const el = [...document.querySelectorAll(".key")].find(k => k.dataset.key === keyName);
+  if (el) el.classList.add("next");
 }
 
 let shiftPressed = false;
@@ -129,7 +174,8 @@ renderKeyboard(normalRows);
 function showProblem(){
   const text = problems[current];
   problemDiv.innerHTML="";
-  for(let ch of text){
+  targetGraphemes = toGraphemes(text);
+  for(let ch of targetGraphemes){
     const span = document.createElement("span");
     span.textContent=ch;
     problemDiv.appendChild(span);
@@ -149,24 +195,29 @@ input.addEventListener("input",()=>{
   if(!startTime) startTime = Date.now();
   const text = problems[current];
   const typed = input.value;
+  const typedG = toGraphemes(typed);
   const spans = problemDiv.querySelectorAll("span");
   let correct=0;
 
   spans.forEach((span,i)=>{
-    if(i<typed.length){
-      if(typed[i]===span.textContent){ span.className="correct"; correct++; }
+    if(i<typedG.length){
+      const a = toNFC(typedG[i]);
+      const b = toNFC(span.textContent);
+      if(a===b){ span.className="correct"; correct++; }
       else span.className="wrong";
     }else span.className="";
   });
 
-  const accuracy = typed.length>0 ? Math.floor(correct/typed.length*100) : 100;
+  const accuracy = typedG.length>0 ? Math.floor(correct/typedG.length*100) : 100;
   acc.textContent = accuracy+"%";
 
   const elapsedMin = (Date.now()-startTime)/60000;
   const charsPerMin = elapsedMin>0 ? Math.floor(correct/elapsedMin) : 0;
   speed.textContent = charsPerMin+" 文字/分";
 
-  if(typed===text){
+  const typedNorm = toNFC(typedG.join(""));
+  const targetNorm = toNFC(targetGraphemes.join(""));
+  if(typedNorm===targetNorm){
     const elapsedSec = (Date.now()-startTime)/1000;
     totalTime += elapsedSec;
     totalAccuracy += accuracy;
