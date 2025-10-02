@@ -37,8 +37,22 @@
   <p>平均正確さ: <span id="avgAccuracy"></span>%</p>
   <p>平均速度: <span id="avgSpeed"></span> 文字/分</p>
   <button id="restartBtn">もう一度プレイ</button>
+
+  <div id="postScore" style="margin-top:20px;">
+    <h3>ランキングに投稿</h3>
+    <input id="playerName" type="text" placeholder="名前" maxlength="20" style="padding:6px;">
+    <button id="submitScoreBtn">スコア送信</button>
+    <p id="submitStatus"></p>
+  </div>
+
+  <div id="leaderboard" style="margin-top:30px;">
+    <h3>ランキング（トップ20）</h3>
+    <div id="leaderboardList"></div>
+  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseConfig.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

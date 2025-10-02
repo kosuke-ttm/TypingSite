@@ -48,6 +48,7 @@ const keyboardDiv = document.getElementById("keyboard");
 let problems=[], current=0, startTime=null;
 let totalTime=0, totalAccuracy=0, totalSpeed=0;
 let targetGraphemes=[]; // 現在の問題文をグラフェム単位に分割した配列
+let wrongIndices = new Set(); // 今問で一度でも赤くなったインデックス
 
 // ----------------------------
 // グラフェム分割 & 正規化ユーティリティ
@@ -175,6 +176,7 @@ function showProblem(){
   const text = problems[current];
   problemDiv.innerHTML="";
   targetGraphemes = toGraphemes(text);
+  wrongIndices = new Set();
   for(let ch of targetGraphemes){
     const span = document.createElement("span");
     span.textContent=ch;
@@ -197,22 +199,40 @@ input.addEventListener("input",()=>{
   const typed = input.value;
   const typedG = toGraphemes(typed);
   const spans = problemDiv.querySelectorAll("span");
-  let correct=0;
+  // 先頭一致長（連鎖的な不一致を避ける）
+  let prefixLen = 0;
+  const limit = Math.min(typedG.length, targetGraphemes.length);
+  for(let i=0;i<limit;i++){
+    if(toNFC(typedG[i]) === toNFC(targetGraphemes[i])) prefixLen++;
+    else break;
+  }
 
+  // 表示の更新: 先頭一致をcorrect、それ以降で入力済み領域をwrong
   spans.forEach((span,i)=>{
-    if(i<typedG.length){
-      const a = toNFC(typedG[i]);
-      const b = toNFC(span.textContent);
-      if(a===b){ span.className="correct"; correct++; }
-      else span.className="wrong";
-    }else span.className="";
+    if(i<prefixLen){
+      span.className = "correct";
+    }else if(i<typedG.length){
+      span.className = "wrong";
+      wrongIndices.add(i); // 実際に赤く表示したインデックスを記録
+    }else{
+      span.className = "";
+    }
   });
 
-  const accuracy = typedG.length>0 ? Math.floor(correct/typedG.length*100) : 100;
+  // 赤く光ったインデックス（不一致箇所）を記録
+  for(let i=0;i<limit;i++){
+    if(toNFC(typedG[i]) !== toNFC(targetGraphemes[i])){
+      wrongIndices.add(i);
+    }
+  }
+
+  // 正確さ: 一度でも赤くなったユニークな文字数の割合で算出
+  const wrongCount = wrongIndices.size;
+  const accuracy = targetGraphemes.length>0 ? Math.max(0, Math.floor((1 - wrongCount/targetGraphemes.length)*100)) : 100;
   acc.textContent = accuracy+"%";
 
   const elapsedMin = (Date.now()-startTime)/60000;
-  const charsPerMin = elapsedMin>0 ? Math.floor(correct/elapsedMin) : 0;
+  const charsPerMin = elapsedMin>0 ? Math.floor(prefixLen/elapsedMin) : 0;
   speed.textContent = charsPerMin+" 文字/分";
 
   const typedNorm = toNFC(typedG.join(""));
@@ -239,6 +259,9 @@ function showScore(){
   avgTime.textContent = (totalTime/problems.length).toFixed(2);
   avgAccuracy.textContent = (totalAccuracy/problems.length).toFixed(1);
   avgSpeed.textContent = (totalSpeed/problems.length).toFixed(0);
+
+  // スコア表示時にランキング取得
+  fetchLeaderboard();
 }
 
 // ----------------------------
@@ -284,3 +307,81 @@ document.addEventListener("keyup",(e)=>{
     if(k.dataset.key===key) k.classList.remove("active");
   });
 });
+
+// ----------------------------
+// 9. Supabase 連携（スコア投稿 & ランキング取得）
+// ----------------------------
+const submitBtn = document.getElementById("submitScoreBtn");
+const playerNameInput = document.getElementById("playerName");
+const submitStatus = document.getElementById("submitStatus");
+const leaderboardList = document.getElementById("leaderboardList");
+
+function parseNumberFromText(text){
+  const m = String(text).match(/[-+]?[0-9]*\.?[0-9]+/);
+  return m ? Number(m[0]) : 0;
+}
+
+function computeFinalScore(){
+  // ユーザー要望: スコア = 平均速度 × (1 / 平均時間)
+  const speedVal = parseNumberFromText(avgSpeed.textContent);
+  const avgTimeVal = parseNumberFromText(avgTime.textContent);
+  if(avgTimeVal <= 0) return 0;
+  return Math.round(speedVal / avgTimeVal);
+}
+
+async function submitScore(){
+  try{
+    const name = (playerNameInput.value||"名無し").trim().slice(0,20);
+    const score = computeFinalScore();
+    const payload = {
+      name,
+      score,
+      avg_time: parseNumberFromText(avgTime.textContent),
+      cpm: parseNumberFromText(avgSpeed.textContent),
+      created_at: new Date().toISOString()
+    };
+    submitStatus.textContent = "送信中...";
+    const { error } = await supabase.from("typing_scores").insert(payload);
+    if(error){
+      submitStatus.textContent = "送信に失敗しました: " + error.message;
+      return;
+    }
+    submitStatus.textContent = "送信しました！";
+    await fetchLeaderboard();
+  }catch(err){
+    submitStatus.textContent = "送信に失敗しました";
+  }
+}
+
+async function fetchLeaderboard(){
+  try{
+    leaderboardList.textContent = "読み込み中...";
+    const { data, error } = await supabase
+      .from("typing_scores")
+      .select("name, score, avg_time, cpm, created_at")
+      .order("score", { ascending:false })
+      .limit(20);
+    if(error){
+      leaderboardList.textContent = "取得に失敗しました: " + error.message;
+      return;
+    }
+    if(!data || data.length===0){
+      leaderboardList.textContent = "まだ投稿がありません";
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    data.forEach((row,idx)=>{
+      const div = document.createElement("div");
+      div.textContent = `${idx+1}. ${row.name} - スコア ${row.score} / 平均時間 ${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time} 秒 / 平均速度 ${row.cpm}`;
+      frag.appendChild(div);
+    });
+    leaderboardList.innerHTML = "";
+    leaderboardList.appendChild(frag);
+  }catch(err){
+    leaderboardList.textContent = "取得に失敗しました";
+  }
+}
+
+if(submitBtn){
+  submitBtn.addEventListener("click", submitScore);
+}
