@@ -256,6 +256,7 @@ input.addEventListener("input",()=>{
 function showScore(){
   gameArea.style.display="none";
   scoreScreen.style.display="block";
+  if(topLeaderboard) topLeaderboard.style.display = "none";
   avgTime.textContent = (totalTime/problems.length).toFixed(2);
   avgAccuracy.textContent = (totalAccuracy/problems.length).toFixed(1);
   avgSpeed.textContent = (totalSpeed/problems.length).toFixed(0);
@@ -274,6 +275,8 @@ startBtn.addEventListener("click",()=>{
   startScreen.style.display="none";
   gameArea.style.display="block";
   scoreScreen.style.display="none";
+  // トップランキングはゲーム中は非表示
+  if(topLeaderboard) topLeaderboard.style.display = "none";
   showProblem();
 });
 
@@ -281,6 +284,10 @@ restartBtn.addEventListener("click",()=>{
   startScreen.style.display="block";
   gameArea.style.display="none";
   scoreScreen.style.display="none";
+  // スタート画面ではトップランキングを表示
+  if(topLeaderboard) topLeaderboard.style.display = "block";
+  // トップのランキングも最新化
+  fetchLeaderboard();
 });
 
 // ----------------------------
@@ -315,6 +322,8 @@ const submitBtn = document.getElementById("submitScoreBtn");
 const playerNameInput = document.getElementById("playerName");
 const submitStatus = document.getElementById("submitStatus");
 const leaderboardList = document.getElementById("leaderboardList");
+const topLeaderboard = document.getElementById("topLeaderboard");
+const topLeaderboardList = document.getElementById("topLeaderboardList");
 
 function parseNumberFromText(text){
   const m = String(text).match(/[-+]?[0-9]*\.?[0-9]+/);
@@ -355,33 +364,53 @@ async function submitScore(){
 
 async function fetchLeaderboard(){
   try{
-    leaderboardList.textContent = "読み込み中...";
+    if(leaderboardList) leaderboardList.textContent = "読み込み中...";
+    if(topLeaderboardList) topLeaderboardList.textContent = "読み込み中...";
     const { data, error } = await supabase
       .from("typing_scores")
       .select("name, score, avg_time, cpm, created_at")
       .order("score", { ascending:false })
       .limit(20);
     if(error){
-      leaderboardList.textContent = "取得に失敗しました: " + error.message;
+      if(leaderboardList) leaderboardList.textContent = "取得に失敗しました: " + error.message;
+      if(topLeaderboardList) topLeaderboardList.textContent = "取得に失敗しました: " + error.message;
       return;
     }
     if(!data || data.length===0){
-      leaderboardList.textContent = "まだ投稿がありません";
+      if(leaderboardList) leaderboardList.textContent = "まだ投稿がありません";
+      if(topLeaderboardList) topLeaderboardList.textContent = "まだ投稿がありません";
       return;
     }
-    const frag = document.createDocumentFragment();
+    const frag1 = document.createDocumentFragment();
+    const frag2 = document.createDocumentFragment();
     data.forEach((row,idx)=>{
-      const div = document.createElement("div");
-      div.textContent = `${idx+1}. ${row.name} - スコア ${row.score} / 平均時間 ${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time} 秒 / 平均速度 ${row.cpm}`;
-      frag.appendChild(div);
+      const line = `${idx+1}. ${row.name} - スコア ${row.score} / 平均時間 ${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time} 秒 / 平均速度 ${row.cpm}`;
+      const div1 = document.createElement("div");
+      div1.textContent = line;
+      const div2 = document.createElement("div");
+      div2.textContent = line;
+      frag1.appendChild(div1);
+      frag2.appendChild(div2);
     });
-    leaderboardList.innerHTML = "";
-    leaderboardList.appendChild(frag);
+    if(leaderboardList){
+      leaderboardList.innerHTML = "";
+      leaderboardList.appendChild(frag1);
+    }
+    if(topLeaderboardList){
+      topLeaderboardList.innerHTML = "";
+      topLeaderboardList.appendChild(frag2);
+    }
   }catch(err){
-    leaderboardList.textContent = "取得に失敗しました";
+    if(leaderboardList) leaderboardList.textContent = "取得に失敗しました";
+    if(topLeaderboardList) topLeaderboardList.textContent = "取得に失敗しました";
   }
 }
 
 if(submitBtn){
   submitBtn.addEventListener("click", submitScore);
 }
+
+// 初回ロード時にトップランキングを取得
+document.addEventListener("DOMContentLoaded", () => {
+  fetchLeaderboard();
+});
