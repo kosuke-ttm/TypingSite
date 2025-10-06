@@ -106,3 +106,29 @@ button {
   font-weight:bold;
 }
 button:hover { background:#e68900; }
+
+/* 遊び方セクション */
+#howTo {
+  margin: 40px auto 0;
+  max-width: 900px;
+  text-align: left;
+  background: rgba(0,0,0,0.5);
+  padding: 20px 24px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+#howTo h2 {
+  margin: 0 0 12px;
+  text-align: center;
+  text-shadow: 0 0 8px #000;
+}
+#howTo ul {
+  padding-left: 18px;
+  line-height: 1.8;
+}
+#howTo li { margin: 6px 0; }
+#howTo .tips {
+  margin-top: 12px;
+  font-style: italic;
+  opacity: 0.9;
+}

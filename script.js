@@ -44,6 +44,7 @@ const avgTime = document.getElementById("avgTime");
 const avgAccuracy = document.getElementById("avgAccuracy");
 const avgSpeed = document.getElementById("avgSpeed");
 const keyboardDiv = document.getElementById("keyboard");
+const howTo = document.getElementById("howTo");
 
 let problems=[], current=0, startTime=null;
 let totalTime=0, totalAccuracy=0, totalSpeed=0;
@@ -257,6 +258,7 @@ function showScore(){
   gameArea.style.display="none";
   scoreScreen.style.display="block";
   if(topLeaderboard) topLeaderboard.style.display = "none";
+  if(howTo) howTo.style.display = "none"; // スコア画面では非表示
   avgTime.textContent = (totalTime/problems.length).toFixed(2);
   avgAccuracy.textContent = (totalAccuracy/problems.length).toFixed(1);
   avgSpeed.textContent = (totalSpeed/problems.length).toFixed(0);
@@ -277,6 +279,7 @@ startBtn.addEventListener("click",()=>{
   scoreScreen.style.display="none";
   // トップランキングはゲーム中は非表示
   if(topLeaderboard) topLeaderboard.style.display = "none";
+  if(howTo) howTo.style.display = "none"; // ゲーム開始時は非表示
   showProblem();
 });
 
@@ -286,6 +289,7 @@ restartBtn.addEventListener("click",()=>{
   scoreScreen.style.display="none";
   // スタート画面ではトップランキングを表示
   if(topLeaderboard) topLeaderboard.style.display = "block";
+  if(howTo) howTo.style.display = "block"; // リスタートで再表示
   // トップのランキングも最新化
   fetchLeaderboard();
 });
