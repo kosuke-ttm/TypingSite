@@ -8,12 +8,6 @@
 <body>
 <h1>🎮 かな入力タイピングゲーム（フルキーボード）🎮</h1>
 
-<!-- トップページ ランキング -->
-<div id="topLeaderboard" style="margin:20px 0;">
-  <h3>ランキング（トップ20）</h3>
-  <div id="topLeaderboardList">読み込み中...</div>
-  <hr>
-</div>
 
 <!-- スタート画面 -->
 <div id="startScreen">
@@ -21,6 +15,29 @@
   <input type="number" id="questionCount" min="1" value="5">
   <button id="startBtn">スタート</button>
 </div>
+
+<!-- トップページ ランキング -->
+<div id="topLeaderboard" style="margin:20px 0;">
+  <h3>ランキング（トップ20）</h3>
+  <div id="topLeaderboardList">読み込み中...</div>
+  <table id="topLeaderboardTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>順位</th>
+        <th>名前</th>
+        <th>スコア</th>
+        <th>平均時間</th>
+        <th>平均速度</th>
+        <th>投稿日時</th>
+      </tr>
+    </thead>
+    <tbody id="topLeaderboardTableBody">
+    </tbody>
+  </table>
+  <hr>
+</div>
+
+
 
 <!-- ゲーム画面 -->
 <div id="gameArea" style="display:none;">
@@ -55,6 +72,20 @@
   <div id="leaderboard" style="margin-top:30px;">
     <h3>ランキング（トップ20）</h3>
     <div id="leaderboardList"></div>
+    <table id="leaderboardTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>順位</th>
+          <th>名前</th>
+          <th>スコア</th>
+          <th>平均時間</th>
+          <th>平均速度</th>
+          <th>投稿日時</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboardTableBody">
+      </tbody>
+    </table>
   </div>
 </div>
 

@@ -338,6 +338,10 @@ const submitStatus = document.getElementById("submitStatus");
 const leaderboardList = document.getElementById("leaderboardList");
 const topLeaderboard = document.getElementById("topLeaderboard");
 const topLeaderboardList = document.getElementById("topLeaderboardList");
+const topLeaderboardTable = document.getElementById("topLeaderboardTable");
+const topLeaderboardTableBody = document.getElementById("topLeaderboardTableBody");
+const leaderboardTable = document.getElementById("leaderboardTable");
+const leaderboardTableBody = document.getElementById("leaderboardTableBody");
 
 // 二重送信防止用フラグ
 let hasSubmitted = false;
@@ -424,6 +428,51 @@ async function fetchLeaderboard(){
       if(topLeaderboardList) topLeaderboardList.textContent = "まだ投稿がありません";
       return;
     }
+    
+    // テーブル形式で表示
+    if(topLeaderboardTable && topLeaderboardTableBody){
+      topLeaderboardTableBody.innerHTML = "";
+      data.forEach((row,idx)=>{
+        const tr = document.createElement("tr");
+        const date = new Date(row.created_at);
+        const dateStr = date.toLocaleDateString('ja-JP') + ' ' + date.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'});
+        
+        tr.innerHTML = `
+          <td>${idx+1}</td>
+          <td>${row.name}</td>
+          <td>${row.score}</td>
+          <td>${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time}秒</td>
+          <td>${row.cpm}文字/分</td>
+          <td>${dateStr}</td>
+        `;
+        topLeaderboardTableBody.appendChild(tr);
+      });
+      topLeaderboardTable.style.display = "table";
+      if(topLeaderboardList) topLeaderboardList.style.display = "none";
+    }
+    
+    if(leaderboardTable && leaderboardTableBody){
+      leaderboardTableBody.innerHTML = "";
+      data.forEach((row,idx)=>{
+        const tr = document.createElement("tr");
+        const date = new Date(row.created_at);
+        const dateStr = date.toLocaleDateString('ja-JP') + ' ' + date.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'});
+        
+        tr.innerHTML = `
+          <td>${idx+1}</td>
+          <td>${row.name}</td>
+          <td>${row.score}</td>
+          <td>${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time}秒</td>
+          <td>${row.cpm}文字/分</td>
+          <td>${dateStr}</td>
+        `;
+        leaderboardTableBody.appendChild(tr);
+      });
+      leaderboardTable.style.display = "table";
+      if(leaderboardList) leaderboardList.style.display = "none";
+    }
+    
+    // フォールバック用のテキスト表示も残す
     const frag1 = document.createDocumentFragment();
     const frag2 = document.createDocumentFragment();
     data.forEach((row,idx)=>{
