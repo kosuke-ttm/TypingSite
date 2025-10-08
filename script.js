@@ -263,6 +263,16 @@ function showScore(){
   avgAccuracy.textContent = (totalAccuracy/problems.length).toFixed(1);
   avgSpeed.textContent = (totalSpeed/problems.length).toFixed(0);
 
+  // 送信UIを初期化
+  hasSubmitted = false;
+  isSubmitting = false;
+  if(submitBtn) submitBtn.disabled = false;
+  if(submitStatus) submitStatus.textContent = "";
+  if(submitBtn){
+    submitBtn.dataset.locked = "0";
+    submitBtn.style.pointerEvents = "auto";
+  }
+
   // スコア表示時にランキング取得
   fetchLeaderboard();
 }
@@ -329,6 +339,10 @@ const leaderboardList = document.getElementById("leaderboardList");
 const topLeaderboard = document.getElementById("topLeaderboard");
 const topLeaderboardList = document.getElementById("topLeaderboardList");
 
+// 二重送信防止用フラグ
+let hasSubmitted = false;
+let isSubmitting = false;
+
 function parseNumberFromText(text){
   const m = String(text).match(/[-+]?[0-9]*\.?[0-9]+/);
   return m ? Number(m[0]) : 0;
@@ -344,6 +358,18 @@ function computeFinalScore(){
 
 async function submitScore(){
   try{
+    // 二重送信ガード
+    if(hasSubmitted || isSubmitting || (submitBtn && submitBtn.dataset.locked === "1")){
+      if(submitStatus) submitStatus.textContent = hasSubmitted ? "既に送信済みです" : "送信中です...";
+      return;
+    }
+    isSubmitting = true;
+    if(submitBtn) submitBtn.disabled = true;
+    if(submitBtn){
+      submitBtn.dataset.locked = "1";
+      submitBtn.style.pointerEvents = "none";
+    }
+
     const name = (playerNameInput.value||"名無し").trim().slice(0,20);
     const score = computeFinalScore();
     const payload = {
@@ -357,12 +383,25 @@ async function submitScore(){
     const { error } = await supabase.from("typing_scores").insert(payload);
     if(error){
       submitStatus.textContent = "送信に失敗しました: " + error.message;
+      isSubmitting = false;
+      if(submitBtn){
+        submitBtn.disabled = false;
+        submitBtn.dataset.locked = "0";
+        submitBtn.style.pointerEvents = "auto";
+      }
       return;
     }
     submitStatus.textContent = "送信しました！";
+    hasSubmitted = true;
     await fetchLeaderboard();
   }catch(err){
     submitStatus.textContent = "送信に失敗しました";
+    isSubmitting = false;
+    if(submitBtn){
+      submitBtn.disabled = false;
+      submitBtn.dataset.locked = "0";
+      submitBtn.style.pointerEvents = "auto";
+    }
   }
 }
 
