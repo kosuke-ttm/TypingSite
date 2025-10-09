@@ -12,8 +12,9 @@
 <!-- スタート画面 -->
 <div id="startScreen">
   <p>問題数を入力してください：</p>
-  <input type="number" id="questionCount" min="1" value="5">
+  <input type="number" id="questionCount" min="1" step="1" value="5">
   <button id="startBtn">スタート</button>
+  <p>ちょうど100問を解いた場合、ランキングに投稿できます！</p>
 </div>
 
 <!-- トップページ ランキング -->
@@ -27,6 +28,7 @@
         <th>名前</th>
         <th>スコア</th>
         <th>平均時間</th>
+        <th>総時間</th>
         <th>平均速度</th>
         <th>投稿日時</th>
       </tr>
@@ -79,6 +81,7 @@
           <th>名前</th>
           <th>スコア</th>
           <th>平均時間</th>
+          <th>総時間</th>
           <th>平均速度</th>
           <th>投稿日時</th>
         </tr>

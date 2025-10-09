@@ -273,6 +273,19 @@ function showScore(){
     submitBtn.style.pointerEvents = "auto";
   }
 
+  // ランキング参加条件: ちょうど100問クリア時のみ投稿可
+  const isEligibleForRanking = problems.length === 100;
+  if(!isEligibleForRanking){
+    if(submitBtn){
+      submitBtn.disabled = true;
+      submitBtn.dataset.locked = "1";
+      submitBtn.style.pointerEvents = "none";
+    }
+    if(submitStatus){
+      submitStatus.textContent = `ランキング投稿は100問クリア時のみ可能です（今回: ${problems.length}問）`;
+    }
+  }
+
   // スコア表示時にランキング取得
   fetchLeaderboard();
 }
@@ -281,7 +294,13 @@ function showScore(){
 // 7. スタート / リスタート
 // ----------------------------
 startBtn.addEventListener("click",()=>{
-  const count = parseInt(document.getElementById("questionCount").value);
+  const raw = document.getElementById("questionCount").value;
+  const count = Number(raw);
+  const isInteger = Number.isInteger(count);
+  if(!isInteger || count < 1){
+    alert("問題数は1以上の整数を入力してください。");
+    return;
+  }
   problems = generateProblems(count);
   current=0; totalTime=0; totalAccuracy=0; totalSpeed=0;
   startScreen.style.display="none";
@@ -367,6 +386,12 @@ async function submitScore(){
       if(submitStatus) submitStatus.textContent = hasSubmitted ? "既に送信済みです" : "送信中です...";
       return;
     }
+
+    // 参加条件ガード: 100問以外は投稿不可
+    if(problems.length !== 100){
+      if(submitStatus) submitStatus.textContent = `ランキング投稿は100問クリア時のみ可能です（今回: ${problems.length}問）`;
+      return;
+    }
     isSubmitting = true;
     if(submitBtn) submitBtn.disabled = true;
     if(submitBtn){
@@ -381,6 +406,7 @@ async function submitScore(){
       score,
       avg_time: parseNumberFromText(avgTime.textContent),
       cpm: parseNumberFromText(avgSpeed.textContent),
+      total_time: Math.round(totalTime),
       created_at: new Date().toISOString()
     };
     submitStatus.textContent = "送信中...";
@@ -415,7 +441,7 @@ async function fetchLeaderboard(){
     if(topLeaderboardList) topLeaderboardList.textContent = "読み込み中...";
     const { data, error } = await supabase
       .from("typing_scores")
-      .select("name, score, avg_time, cpm, created_at")
+      .select("name, score, avg_time, total_time, cpm, created_at")
       .order("score", { ascending:false })
       .limit(20);
     if(error){
@@ -442,6 +468,7 @@ async function fetchLeaderboard(){
           <td>${row.name}</td>
           <td>${row.score}</td>
           <td>${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time}秒</td>
+          <td>${row.total_time ?? '-'}秒</td>
           <td>${row.cpm}文字/分</td>
           <td>${dateStr}</td>
         `;
@@ -463,6 +490,7 @@ async function fetchLeaderboard(){
           <td>${row.name}</td>
           <td>${row.score}</td>
           <td>${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time}秒</td>
+          <td>${row.total_time ?? '-'}秒</td>
           <td>${row.cpm}文字/分</td>
           <td>${dateStr}</td>
         `;
@@ -476,7 +504,7 @@ async function fetchLeaderboard(){
     const frag1 = document.createDocumentFragment();
     const frag2 = document.createDocumentFragment();
     data.forEach((row,idx)=>{
-      const line = `${idx+1}. ${row.name} - スコア ${row.score} / 平均時間 ${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time} 秒 / 平均速度 ${row.cpm}`;
+      const line = `${idx+1}. ${row.name} - スコア ${row.score} / 平均時間 ${row.avg_time.toFixed ? row.avg_time.toFixed(2) : row.avg_time} 秒 / 総時間 ${row.total_time ?? '-'} 秒 / 平均速度 ${row.cpm}`;
       const div1 = document.createElement("div");
       div1.textContent = line;
       const div2 = document.createElement("div");
