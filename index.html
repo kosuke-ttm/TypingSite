@@ -17,6 +17,31 @@
   <p>ちょうど100問を解いた場合、ランキングに投稿できます！</p>
 </div>
 
+<!-- HowTo: 下段の遊び方セクション -->
+<div id="howTo">
+  <h2>📝 遊び方</h2>
+  <ul>
+    <li>「問題数」を入力して「スタート」を押します。</li>
+    <li>表示されたかな文字列を、かな入力でタイプします。</li>
+    <li>入力欄は自動フォーカスされます。誤入力は赤で表示されます。</li>
+    <li>画面下の仮想キーボードで、押すキーの目安を確認できます。</li>
+    <li>全問終了後に平均時間・正確さ・速度が表示されます。</li>
+    <li>名前を入力して「スコア送信」でランキングに投稿できます。</li>
+  </ul>
+  
+  <h3>📊 スコア計算式</h3>
+  <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 10px 0;">
+    <p style="font-family: 'Courier New', monospace; font-size: 18px; margin: 0;">
+      <strong>スコア = 平均速度 ÷ 平均時間</strong>
+    </p>
+    <p style="font-size: 14px; margin: 8px 0 0; opacity: 0.9;">
+      より速く、より正確にタイプすることで高スコアを目指せます！
+    </p>
+  </div>
+  
+  <p class="tips">コツ：ホームポジションを意識し、視線は問題文に固定しましょう。</p>
+</div>
+
 <!-- トップページ ランキング -->
 <div id="topLeaderboard" style="margin:20px 0;">
   <h3>ランキング（トップ20）</h3>
@@ -92,19 +117,7 @@
   </div>
 </div>
 
-<!-- HowTo: 下段の遊び方セクション -->
-<div id="howTo">
-  <h2>📝 遊び方</h2>
-  <ul>
-    <li>「問題数」を入力して「スタート」を押します。</li>
-    <li>表示されたかな文字列を、かな入力でタイプします。</li>
-    <li>入力欄は自動フォーカスされます。誤入力は赤で表示されます。</li>
-    <li>画面下の仮想キーボードで、押すキーの目安を確認できます。</li>
-    <li>全問終了後に平均時間・正確さ・速度が表示されます。</li>
-    <li>名前を入力して「スコア送信」でランキングに投稿できます。</li>
-  </ul>
-  <p class="tips">コツ：ホームポジションを意識し、視線は問題文に固定しましょう。</p>
-</div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabaseConfig.js"></script>
