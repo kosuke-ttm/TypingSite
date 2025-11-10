@@ -43,6 +43,7 @@ const speed = document.getElementById("speed");
 const avgTime = document.getElementById("avgTime");
 const avgAccuracy = document.getElementById("avgAccuracy");
 const avgSpeed = document.getElementById("avgSpeed");
+const finalScore = document.getElementById("finalScore");
 const keyboardDiv = document.getElementById("keyboard");
 const howTo = document.getElementById("howTo");
 
@@ -458,6 +459,9 @@ function showScore(){
   avgTime.textContent = (totalTime/problems.length).toFixed(2);
   avgAccuracy.textContent = (totalAccuracy/problems.length).toFixed(1);
   avgSpeed.textContent = (totalSpeed/problems.length).toFixed(0);
+  // スコアを計算して表示
+  const score = computeFinalScore();
+  if(finalScore) finalScore.textContent = score;
 
   // 送信UIを初期化
   hasSubmitted = false;

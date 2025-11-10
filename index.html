@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>🎮 かな入力タイピングゲーム（フルキーボード）🎮</h1>
+<h1>⌨️ USキーボード向け かな入力タイピングゲーム🎮</h1>
 
 
 <!-- スタート画面 -->
@@ -32,7 +32,7 @@
   <h3>📊 スコア計算式</h3>
   <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 10px 0;">
     <p style="font-family: 'Courier New', monospace; font-size: 18px; margin: 0;">
-      <strong>スコア = 平均速度 ÷ 平均時間</strong>
+      <strong>スコア = 平均速度（文字/分） ÷ 平均時間（秒）</strong>
     </p>
     <p style="font-size: 14px; margin: 8px 0 0; opacity: 0.9;">
       より速く、より正確にタイプすることで高スコアを目指せます！
@@ -84,6 +84,7 @@
 <!-- スコア画面 -->
 <div id="scoreScreen" style="display:none;">
   <h2>🎉 全問クリア！ 🎉</h2>
+  <p>スコア: <span id="finalScore"></span></p>
   <p>平均時間: <span id="avgTime"></span> 秒</p>
   <p>平均正確さ: <span id="avgAccuracy"></span>%</p>
   <p>平均速度: <span id="avgSpeed"></span> 文字/分</p>
