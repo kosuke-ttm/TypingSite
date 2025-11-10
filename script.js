@@ -50,6 +50,7 @@ let problems=[], current=0, startTime=null;
 let totalTime=0, totalAccuracy=0, totalSpeed=0;
 let targetGraphemes=[]; // 現在の問題文をグラフェム単位に分割した配列
 let wrongIndices = new Set(); // 今問で一度でも赤くなったインデックス
+let typedKanaString = ""; // 物理キー入力から変換したかな文字列（入力モードに依存しない）
 
 // ----------------------------
 // グラフェム分割 & 正規化ユーティリティ
@@ -88,6 +89,60 @@ function getDakutenKeyFromNFD(nfd){
 }
 
 // ----------------------------
+// 物理キーコードからかな文字へのマッピング（かな入力レイアウト）
+// ----------------------------
+const keyCodeToKana = {
+  // 数字キー行
+  "Digit1": "ぬ", "Digit2": "ふ", "Digit3": "あ", "Digit4": "う", "Digit5": "え",
+  "Digit6": "お", "Digit7": "や", "Digit8": "ゆ", "Digit9": "よ", "Digit0": "わ",
+  "Minus": "ほ", "Equal": "゜",
+  // 上段
+  "KeyQ": "た", "KeyW": "て", "KeyE": "い", "KeyR": "す", "KeyT": "か", "KeyY": "ん",
+  "KeyU": "な", "KeyI": "に", "KeyO": "ら", "KeyP": "せ", "BracketLeft": "゛", "BracketRight": "む",
+  "Backslash": "へ",
+  // 中段
+  "KeyA": "ち", "KeyS": "と", "KeyD": "し", "KeyF": "は", "KeyG": "き", "KeyH": "く",
+  "KeyJ": "ま", "KeyK": "の", "KeyL": "り", "Semicolon": "れ", "Quote": "け",
+  // 下段
+  "KeyZ": "つ", "KeyX": "さ", "KeyC": "そ", "KeyV": "ひ", "KeyB": "こ", "KeyN": "み",
+  "KeyM": "も", "Comma": "ね", "Period": "る", "Slash": "め",
+  // 特殊キー
+  "Space": " ", "Enter": "\n"
+};
+
+// Shiftキーとの組み合わせ（小文字・特殊文字）
+const keyCodeToKanaShift = {
+  "Digit1": "ぬ", "Digit2": "ふ", "Digit3": "ぁ", "Digit4": "ぅ", "Digit5": "ぇ",
+  "Digit6": "ぉ", "Digit7": "ゃ", "Digit8": "ゅ", "Digit9": "ょ", "Digit0": "を",
+  "Minus": "ほ", "Equal": "「",
+  "KeyQ": "た", "KeyW": "て", "KeyE": "ぃ", "KeyR": "す", "KeyT": "か", "KeyY": "ん",
+  "KeyU": "な", "KeyI": "に", "KeyO": "ら", "KeyP": "せ", "BracketLeft": "」", "BracketRight": "ー",
+  "Backslash": "へ",
+  "KeyA": "ち", "KeyS": "と", "KeyD": "し", "KeyF": "は", "KeyG": "き", "KeyH": "く",
+  "KeyJ": "ま", "KeyK": "の", "KeyL": "り", "Semicolon": "れ", "Quote": "ろ",
+  "KeyZ": "っ", "KeyX": "さ", "KeyC": "そ", "KeyV": "ひ", "KeyB": "こ", "KeyN": "み",
+  "KeyM": "も", "Comma": "、", "Period": "。", "Slash": "・",
+  "Space": " ", "Enter": "\n"
+};
+
+// 濁点・半濁点の処理用マッピング
+const dakutenMap = {
+  "か": "が", "き": "ぎ", "く": "ぐ", "け": "げ", "こ": "ご",
+  "さ": "ざ", "し": "じ", "す": "ず", "せ": "ぜ", "そ": "ぞ",
+  "た": "だ", "ち": "ぢ", "つ": "づ", "て": "で", "と": "ど",
+  "は": "ば", "ひ": "び", "ふ": "ぶ", "へ": "べ", "ほ": "ぼ",
+  "カ": "ガ", "キ": "ギ", "ク": "グ", "ケ": "ゲ", "コ": "ゴ",
+  "サ": "ザ", "シ": "ジ", "ス": "ズ", "セ": "ゼ", "ソ": "ゾ",
+  "タ": "ダ", "チ": "ヂ", "ツ": "ヅ", "テ": "デ", "ト": "ド",
+  "ハ": "バ", "ヒ": "ビ", "フ": "ブ", "ヘ": "ベ", "ホ": "ボ"
+};
+
+const handakutenMap = {
+  "は": "ぱ", "ひ": "ぴ", "ふ": "ぷ", "へ": "ぺ", "ほ": "ぽ",
+  "ハ": "パ", "ヒ": "ピ", "フ": "プ", "ヘ": "ペ", "ホ": "ポ"
+};
+
+// ----------------------------
 // 3. キーボード生成
 // ----------------------------
 const normalRows = [
@@ -116,7 +171,7 @@ function highlightNextKey() {
   // まず全部リセット
   document.querySelectorAll(".key").forEach(k => k.classList.remove("next"));
 
-  const typedG = toGraphemes(input.value);
+  const typedG = toGraphemes(typedKanaString);
 
   const idx = getFirstMismatchIndex(typedG, targetGraphemes);
   if (idx >= targetGraphemes.length) return; // 完了
@@ -178,6 +233,7 @@ function showProblem(){
   problemDiv.innerHTML="";
   targetGraphemes = toGraphemes(text);
   wrongIndices = new Set();
+  typedKanaString = ""; // かな文字列をリセット
   for(let ch of targetGraphemes){
     const span = document.createElement("span");
     span.textContent=ch;
@@ -192,14 +248,63 @@ function showProblem(){
 }
 
 // ----------------------------
-// 5. 入力判定
+// 5. 入力判定（物理キー入力からかな文字への変換）
 // ----------------------------
-input.addEventListener("input",()=>{
+
+// 物理キー入力をかな文字に変換して処理
+function processKanaInput(kanaChar) {
   if(!startTime) startTime = Date.now();
-  const text = problems[current];
-  const typed = input.value;
-  const typedG = toGraphemes(typed);
+  
+  // バックスペース処理
+  if(kanaChar === "\b") {
+    typedKanaString = typedKanaString.slice(0, -1);
+    updateDisplay();
+    return;
+  }
+  
+  // 通常の文字入力
+  if(kanaChar && kanaChar.length > 0) {
+    // 濁点・半濁点の処理
+    if(kanaChar === "゛") {
+      if(typedKanaString.length > 0) {
+        const lastChar = typedKanaString[typedKanaString.length - 1];
+        if(dakutenMap[lastChar]) {
+          typedKanaString = typedKanaString.slice(0, -1) + dakutenMap[lastChar];
+        } else {
+          // 濁点が適用できない場合は無視
+          return;
+        }
+      } else {
+        return;
+      }
+    } else if(kanaChar === "゜") {
+      if(typedKanaString.length > 0) {
+        const lastChar = typedKanaString[typedKanaString.length - 1];
+        if(handakutenMap[lastChar]) {
+          typedKanaString = typedKanaString.slice(0, -1) + handakutenMap[lastChar];
+        } else {
+          // 半濁点が適用できない場合は無視
+          return;
+        }
+      } else {
+        return;
+      }
+    } else {
+      typedKanaString += kanaChar;
+    }
+    
+    updateDisplay();
+  }
+}
+
+// 表示を更新
+function updateDisplay() {
+  // 入力フィールドにかな文字列を表示
+  input.value = typedKanaString;
+  
+  const typedG = toGraphemes(typedKanaString);
   const spans = problemDiv.querySelectorAll("span");
+  
   // 先頭一致長（連鎖的な不一致を避ける）
   let prefixLen = 0;
   const limit = Math.min(typedG.length, targetGraphemes.length);
@@ -249,6 +354,97 @@ input.addEventListener("input",()=>{
     else showScore();
   }
   highlightNextKey();
+}
+
+// 物理キー入力を監視（入力モードに依存しない）
+input.addEventListener("keydown", (e) => {
+  // 入力フィールドへの直接入力を防ぐ（かな文字列は内部で管理）
+  e.preventDefault();
+  
+  const keyCode = e.code;
+  let kanaChar = null;
+  
+  // Backspace処理
+  if(keyCode === "Backspace") {
+    processKanaInput("\b");
+    // キーボード表示用の処理
+    document.querySelectorAll(".key").forEach(k=>{
+      if(k.dataset.key==="Backspace") k.classList.add("active");
+    });
+    return;
+  }
+  
+  // Shiftキーとの組み合わせをチェック
+  const mapping = e.shiftKey ? keyCodeToKanaShift : keyCodeToKana;
+  kanaChar = mapping[keyCode];
+  
+  if(kanaChar) {
+    processKanaInput(kanaChar);
+  }
+  
+  // キーボード表示用の処理（既存のコード）
+  const key = e.key===" "? "Space" : e.key==="Enter"?"Enter":e.key;
+  if(e.key==="Shift") {
+    shiftPressed = true;
+    renderKeyboard(shiftRows);
+  }
+  document.querySelectorAll(".key").forEach(k=>{
+    if(k.dataset.key===key) k.classList.add("active");
+  });
+});
+
+input.addEventListener("keyup", (e) => {
+  const key = e.key===" "? "Space" : e.key==="Enter"?"Enter":e.key;
+  if(e.key==="Shift") {
+    shiftPressed = false;
+    renderKeyboard(normalRows);
+  }
+  document.querySelectorAll(".key").forEach(k=>{
+    if(k.dataset.key===key) k.classList.remove("active");
+  });
+});
+
+// IME入力を無効化
+input.addEventListener("compositionstart", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+input.addEventListener("compositionupdate", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+input.addEventListener("compositionend", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  // IME入力が終了したら、値を内部のかな文字列で上書き
+  input.value = typedKanaString;
+});
+
+// beforeinputイベントで入力を防ぐ（より確実に）
+input.addEventListener("beforeinput", (e) => {
+  // 物理キー入力から変換したかな文字列を使用するため、直接の入力を防ぐ
+  if (e.inputType !== "deleteContentBackward") {
+    e.preventDefault();
+  }
+});
+
+// inputイベントで値を常に内部のかな文字列で上書き（ローマ字入力などを防ぐ）
+input.addEventListener("input", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  // 入力フィールドの値を常に内部のかな文字列で上書き
+  // 少し遅延させて確実に上書き
+  setTimeout(() => {
+    input.value = typedKanaString;
+  }, 0);
+});
+
+// keypressイベントも無効化（IME入力の一部を防ぐ）
+input.addEventListener("keypress", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
 });
 
 // ----------------------------
