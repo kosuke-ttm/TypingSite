@@ -162,6 +162,39 @@ const shiftRows = [
   ["Shift","Space","Enter","Backspace"]
 ];
 
+// 文字グループごとの色分けマッピング
+const charColorGroups = {
+  // グループ1: うすはひえかきこ
+  "う": "group-1", "す": "group-1", "は": "group-1", "ひ": "group-1", 
+  "え": "group-1", "か": "group-1", "き": "group-1", "こ": "group-1",
+  "ぅ": "group-1", "ぇ": "group-1", // 小文字
+  // グループ2: あいしそ
+  "あ": "group-2", "い": "group-2", "し": "group-2", "そ": "group-2",
+  "ぁ": "group-2", "ぃ": "group-2", // 小文字
+  // グループ3: ふてとさ
+  "ふ": "group-3", "て": "group-3", "と": "group-3", "さ": "group-3",
+  // グループ4: ぬたちつ
+  "ぬ": "group-4", "た": "group-4", "ち": "group-4", "つ": "group-4",
+  "っ": "group-4", // 小文字
+  // グループ5: やなまもおんくみ
+  "や": "group-5", "な": "group-5", "ま": "group-5", "も": "group-5",
+  "お": "group-5", "ん": "group-5", "く": "group-5", "み": "group-5",
+  "ぉ": "group-5", "ゃ": "group-5", // 小文字
+  // グループ6: ゆにのね
+  "ゆ": "group-6", "に": "group-6", "の": "group-6", "ね": "group-6",
+  "ゅ": "group-6", // 小文字
+  // グループ7: よらりる
+  "よ": "group-7", "ら": "group-7", "り": "group-7", "る": "group-7",
+  "ょ": "group-7", // 小文字
+  // グループ8: わせれめほけむへ゛゜
+  "わ": "group-8", "せ": "group-8", "れ": "group-8", "め": "group-8",
+  "ほ": "group-8", "け": "group-8", "む": "group-8", "へ": "group-8",
+  "゛": "group-8", "゜": "group-8",
+  "を": "group-8", "ろ": "group-8", // 小文字・その他
+  "、": "group-8", "。": "group-8", "・": "group-8", // 句読点
+  "「": "group-8", "」": "group-8", "ー": "group-8" // 記号
+};
+
 
 // 濁点付き文字を分解（NFD）
 function baseChar(char) {
@@ -236,7 +269,14 @@ function renderKeyboard(rows){
     row.forEach(k=>{
       const span = document.createElement("span");
       span.className = k.length>1 ? "key special" : "key";
-      if(homeKeys.includes(k)) span.classList.add("home"); 
+      if(homeKeys.includes(k)) span.classList.add("home");
+      // 文字グループごとの色分けクラスを追加
+      if(charColorGroups[k]) {
+        span.classList.add(charColorGroups[k]);
+      } else {
+        // 特殊キーなど、グループに属さないキーはデフォルト色
+        span.classList.add("group-default");
+      }
       span.dataset.key = k;
       span.textContent = k==="Space"?"␣":k;
       rowDiv.appendChild(span);

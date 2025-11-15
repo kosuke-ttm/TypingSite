@@ -60,32 +60,112 @@ h1 {text-shadow:2px 2px 6px #000;}
   text-align:center; user-select:none; box-shadow:0 0 5px #000;
   transition:all 0.1s;
 }
-.key.special { width:40px; background:#555; font-size: 7px;}
-.key.active { background:#ff0; color:#000; text-shadow:0 0 10px #fff; }
+
+/* 文字グループごとの色分け */
+.key.group-1 { background:#4a90e2; } /* うすはひえかきこ - 青 */
+.key.group-2 { background:#50c878; } /* あいしそ - 緑 */
+.key.group-3 { background:#ff6b6b; } /* ふてとさ - 赤 */
+.key.group-4 { background:#ffa500; } /* ぬたちつ - オレンジ */
+.key.group-5 { background:#9b59b6; } /* やなまもおんくみ - 紫 */
+.key.group-6 { background:#ff69b4; } /* ゆにのね - ピンク */
+.key.group-7 { background:#00ced1; } /* よらりる - ターコイズ */
+.key.group-8 { background:#ffd700; } /* わせれめほけむへ゛゜ - ゴールド */
+.key.group-default { background:#555; } /* 特殊キーなど - グレー */
+
+.key.special { width:40px; font-size: 7px;}
+.key.active { background:#ff0 !important; color:#000; text-shadow:0 0 10px #fff; }
 .key.home {
-  background-color: #ffd700; /* ゴールドで目立たせる */
+  /* ホームポジション：グループの色を維持しつつ、ボーダーと影で強調 */
   font-weight: bold;
+  border: 3px solid #ffd700 !important; /* ゴールドの太いボーダー */
   border-radius: 5px;
-  box-shadow: 0 0 8px #ffeb3b;
-  transition: 0.2s;
+  box-shadow: 0 0 12px #ffd700, 0 0 6px #ffd700, inset 0 0 8px rgba(255, 215, 0, 0.4) !important; /* ゴールドのグロー効果 */
+  transition: all 0.2s;
+  animation: homePulse 2s ease-in-out infinite;
+}
+
+@keyframes homePulse {
+  0%, 100% { 
+    box-shadow: 0 0 12px #ffd700, 0 0 6px #ffd700, inset 0 0 8px rgba(255, 215, 0, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 18px #ffd700, 0 0 10px #ffd700, inset 0 0 12px rgba(255, 215, 0, 0.6);
+  }
 }
 
 .key.home.active {
-  box-shadow: 0 0 15px #ffeb3b;
+  background-color: #ff0 !important;
+  border-color: #ff0;
+  box-shadow: 0 0 15px #ff0, inset 0 0 10px rgba(255, 255, 0, 0.5);
   transform: scale(1.1);
 }
 
 .key.next {
-  background: #0ff;
+  /* グループの色を維持しつつ、光らせる */
   color: #000;
-  text-shadow: 0 0 10px #0ff;
-  animation: pulse 1s infinite;
+  font-weight: bold;
+  border: 2px solid currentColor;
+  box-shadow: 0 0 15px currentColor, 0 0 30px currentColor, inset 0 0 10px rgba(255, 255, 255, 0.3);
+  animation: nextPulse 1s ease-in-out infinite;
+  transform: scale(1.05);
+  z-index: 10;
 }
 
-@keyframes pulse {
-  0% { box-shadow: 0 0 5px #0ff; }
-  50% { box-shadow: 0 0 20px #0ff; }
-  100% { box-shadow: 0 0 5px #0ff; }
+/* 各グループの色に合わせた光らせ方 */
+.key.next.group-1 {
+  box-shadow: 0 0 15px #4a90e2, 0 0 30px #4a90e2, inset 0 0 10px rgba(74, 144, 226, 0.4);
+  border-color: #4a90e2;
+}
+
+.key.next.group-2 {
+  box-shadow: 0 0 15px #50c878, 0 0 30px #50c878, inset 0 0 10px rgba(80, 200, 120, 0.4);
+  border-color: #50c878;
+}
+
+.key.next.group-3 {
+  box-shadow: 0 0 15px #ff6b6b, 0 0 30px #ff6b6b, inset 0 0 10px rgba(255, 107, 107, 0.4);
+  border-color: #ff6b6b;
+}
+
+.key.next.group-4 {
+  box-shadow: 0 0 15px #ffa500, 0 0 30px #ffa500, inset 0 0 10px rgba(255, 165, 0, 0.4);
+  border-color: #ffa500;
+}
+
+.key.next.group-5 {
+  box-shadow: 0 0 15px #9b59b6, 0 0 30px #9b59b6, inset 0 0 10px rgba(155, 89, 182, 0.4);
+  border-color: #9b59b6;
+}
+
+.key.next.group-6 {
+  box-shadow: 0 0 15px #ff69b4, 0 0 30px #ff69b4, inset 0 0 10px rgba(255, 105, 180, 0.4);
+  border-color: #ff69b4;
+}
+
+.key.next.group-7 {
+  box-shadow: 0 0 15px #00ced1, 0 0 30px #00ced1, inset 0 0 10px rgba(0, 206, 209, 0.4);
+  border-color: #00ced1;
+}
+
+.key.next.group-8 {
+  box-shadow: 0 0 15px #ffd700, 0 0 30px #ffd700, inset 0 0 10px rgba(255, 215, 0, 0.4);
+  border-color: #ffd700;
+}
+
+.key.next.group-default {
+  box-shadow: 0 0 15px #555, 0 0 30px #555, inset 0 0 10px rgba(85, 85, 85, 0.4);
+  border-color: #555;
+}
+
+@keyframes nextPulse {
+  0%, 100% { 
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
 }
 
 #scoreScreen h2, #scoreScreen p {
