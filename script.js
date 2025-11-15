@@ -191,7 +191,29 @@ function highlightNextKey() {
     }
   }
 
-  // それ以外はベース文字を促す
+  // 次の文字が小文字（Shiftキーが必要な文字）かどうかを判定
+  // normalRowsには存在しないが、shiftRowsには存在する文字を小文字として判定
+  const inNormalRows = normalRows.some(row => row.includes(targetChar));
+  const inShiftRows = shiftRows.some(row => row.includes(targetChar));
+  const isShiftChar = !inNormalRows && inShiftRows;
+  
+  // 小文字の場合の処理
+  if (isShiftChar) {
+    // Shiftキーが押されていない場合：Shiftキーを光らせる
+    if (!shiftPressed) {
+      const shiftEl = [...document.querySelectorAll(".key")].find(k => k.dataset.key === "Shift");
+      if (shiftEl) shiftEl.classList.add("next");
+      return; // Shiftキーを光らせたら終了
+    }
+    // Shiftキーが押されている場合：小文字のキーを光らせる
+    // （この時点でキーボードレイアウトはshiftRowsになっている）
+    const keyName = targetChar;
+    const el = [...document.querySelectorAll(".key")].find(k => k.dataset.key === keyName);
+    if (el) el.classList.add("next");
+    return;
+  }
+  
+  // 小文字でない場合：通常のキーを光らせる
   let keyName = base === " " ? "Space" : base === "\n" ? "Enter" : base;
   const el = [...document.querySelectorAll(".key")].find(k => k.dataset.key === keyName);
   if (el) el.classList.add("next");
@@ -388,6 +410,8 @@ input.addEventListener("keydown", (e) => {
   if(e.key==="Shift") {
     shiftPressed = true;
     renderKeyboard(shiftRows);
+    // Shiftキーが押されたら、次のキーのハイライトを更新
+    highlightNextKey();
   }
   document.querySelectorAll(".key").forEach(k=>{
     if(k.dataset.key===key) k.classList.add("active");
@@ -399,6 +423,8 @@ input.addEventListener("keyup", (e) => {
   if(e.key==="Shift") {
     shiftPressed = false;
     renderKeyboard(normalRows);
+    // Shiftキーが離されたら、次のキーのハイライトを更新
+    highlightNextKey();
   }
   document.querySelectorAll(".key").forEach(k=>{
     if(k.dataset.key===key) k.classList.remove("active");
@@ -444,6 +470,35 @@ input.addEventListener("input", (e) => {
 
 // keypressイベントも無効化（IME入力の一部を防ぐ）
 input.addEventListener("keypress", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+// pasteイベントを無効化（貼り付けを防ぐ）
+input.addEventListener("paste", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+// contextmenuイベントを無効化（右クリックメニューを防ぐ）
+input.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+// dropイベントを無効化（ドラッグ&ドロップを防ぐ）
+input.addEventListener("drop", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+// dragenter, dragoverイベントも無効化
+input.addEventListener("dragenter", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+input.addEventListener("dragover", (e) => {
   e.preventDefault();
   e.stopPropagation();
 });
@@ -531,6 +586,8 @@ document.addEventListener("keydown",(e)=>{
   if(e.key==="Shift") {
     shiftPressed = true;
     renderKeyboard(shiftRows);
+    // Shiftキーが押されたら、次のキーのハイライトを更新
+    highlightNextKey();
   }
   document.querySelectorAll(".key").forEach(k=>{
     if(k.dataset.key===key) k.classList.add("active");
@@ -542,6 +599,8 @@ document.addEventListener("keyup",(e)=>{
   if(e.key==="Shift") {
     shiftPressed = false;
     renderKeyboard(normalRows);
+    // Shiftキーが離されたら、次のキーのハイライトを更新
+    highlightNextKey();
   }
   document.querySelectorAll(".key").forEach(k=>{
     if(k.dataset.key===key) k.classList.remove("active");

@@ -38,6 +38,8 @@ h1 {text-shadow:2px 2px 6px #000;}
   border:2px solid #0f0;
   background:#111;
   color:#fff;
+  ime-mode: disabled; /* IMEを無効化（非標準だが一部のブラウザで有効） */
+  -webkit-ime-mode: disabled; /* Safari用 */
 }
 
 #keyboard { margin-top:30px; display:inline-block; }
