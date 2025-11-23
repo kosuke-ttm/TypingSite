@@ -11,6 +11,42 @@
 
 <!-- スタート画面 -->
 <div id="startScreen">
+  <!-- ユーザー認証セクション -->
+  <div id="authSection" style="margin-bottom:20px;">
+    <div id="authStatus">
+      <p id="authMessage">ゲストでプレイ中</p>
+      <button id="loginBtn" style="display:none;">ログイン</button>
+      <button id="registerBtn" style="display:none;">ユーザー登録</button>
+      <button id="logoutBtn" style="display:none;">ログアウト</button>
+    </div>
+    
+    <!-- ログインフォーム -->
+    <div id="loginForm" style="display:none; margin:20px 0; padding:15px; background:rgba(0,0,0,0.3); border-radius:8px;">
+      <h3>ログイン</h3>
+      <input type="email" id="loginEmail" placeholder="メールアドレス" style="padding:6px; margin:5px; width:200px;">
+      <br>
+      <input type="password" id="loginPassword" placeholder="パスワード" style="padding:6px; margin:5px; width:200px;">
+      <br>
+      <button id="loginSubmitBtn">ログイン</button>
+      <button id="loginCancelBtn">キャンセル</button>
+      <p id="loginStatus" style="margin-top:10px;"></p>
+    </div>
+    
+    <!-- 登録フォーム -->
+    <div id="registerForm" style="display:none; margin:20px 0; padding:15px; background:rgba(0,0,0,0.3); border-radius:8px;">
+      <h3>ユーザー登録</h3>
+      <input type="text" id="registerName" placeholder="表示名（20文字以内）" maxlength="20" style="padding:6px; margin:5px; width:200px;">
+      <br>
+      <input type="email" id="registerEmail" placeholder="メールアドレス" style="padding:6px; margin:5px; width:200px;">
+      <br>
+      <input type="password" id="registerPassword" placeholder="パスワード（6文字以上）" style="padding:6px; margin:5px; width:200px;">
+      <br>
+      <button id="registerSubmitBtn">登録</button>
+      <button id="registerCancelBtn">キャンセル</button>
+      <p id="registerStatus" style="margin-top:10px;"></p>
+    </div>
+  </div>
+  
   <p>問題数を入力してください：</p>
   <input type="number" id="questionCount" min="1" step="1" value="5">
   <button id="startBtn">スタート</button>
@@ -20,16 +56,9 @@
 <!-- HowTo: 下段の遊び方セクション -->
 <div id="howTo">
   <h2>📝 遊び方</h2>
-  <ul>
-    <li>「問題数」を入力して「スタート」を押します。</li>
-    <li>表示されたかな文字列を、かな入力でタイプします。</li>
-    <li>入力欄は自動フォーカスされます。誤入力は赤で表示されます。</li>
-    <li>画面下の仮想キーボードで、押すキーの目安を確認できます。</li>
-    <li>全問終了後に平均時間・正確さ・速度が表示されます。</li>
-    <li>名前を入力して「スコア送信」でランキングに投稿できます。</li>
-  </ul>
-  
-  <h3>📊 スコア計算式</h3>
+  <p>まずは問題数を5くらいで設定してスタートしてください。遊びながら遊び方を知ってください。</p>
+  <p>コツ：ホームポジションを意識し、視線は問題文に固定しましょう。</p>
+  <h2>📊 スコア計算式</h2>
   <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 10px 0;">
     <p style="font-family: 'Courier New', monospace; font-size: 18px; margin: 0;">
       <strong>スコア = 平均速度（文字/分） ÷ 平均時間（秒）</strong>
@@ -38,8 +67,6 @@
       より速く、より正確にタイプすることで高スコアを目指せます！
     </p>
   </div>
-  
-  <p class="tips">コツ：ホームポジションを意識し、視線は問題文に固定しましょう。</p>
 </div>
 
 <!-- トップページ ランキング -->

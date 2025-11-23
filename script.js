@@ -49,6 +49,7 @@ const howTo = document.getElementById("howTo");
 
 let problems=[], current=0, startTime=null;
 let totalTime=0, totalAccuracy=0, totalSpeed=0;
+let totalChars=0; // 総文字数を記録（正確な平均速度計算用）
 let targetGraphemes=[]; // 現在の問題文をグラフェム単位に分割した配列
 let wrongIndices = new Set(); // 今問で一度でも赤くなったインデックス
 let typedKanaString = ""; // 物理キー入力から変換したかな文字列（入力モードに依存しない）
@@ -150,16 +151,16 @@ const normalRows = [
   ["ぬ","ふ","あ","う","え","お","や","ゆ","よ","わ","ほ","゜"],
   ["た","て","い","す","か","ん","な","に","ら","せ","゛","む","へ"],
   ["ち","と","し","は","き","く","ま","の","り","れ","け"],
-  ["つ","さ","そ","ひ","こ","み","も","ね","る","め"],
-  ["Shift","Space","Enter","Backspace"]
+  ["ShiftLeft","つ","さ","そ","ひ","こ","み","も","ね","る","め","ShiftRight"],
+  ["Space","Enter","Backspace"]
 ];
 
 const shiftRows = [
   ["ぬ","ふ","ぁ","ぅ","ぇ","ぉ","ゃ","ゅ","ょ","を","ほ","「"],
   ["た","て","ぃ","す","か","ん","な","に","ら","せ","」","ー","へ"],
   ["ち","と","し","は","き","く","ま","の","り","れ","ろ"],
-  ["っ","さ","そ","ひ","こ","み","も","、","。","・"],
-  ["Shift","Space","Enter","Backspace"]
+  ["ShiftLeft","っ","さ","そ","ひ","こ","み","も","、","。","・","ShiftRight"],
+  ["Space","Enter","Backspace"]
 ];
 
 // 文字グループごとの色分けマッピング
@@ -201,6 +202,22 @@ function baseChar(char) {
   return char.normalize("NFD")[0]; // 先頭の基本文字を取得
 }
 
+// 濁点付き文字を基本文字と濁点に分解（表示用）
+function splitDakutenChar(char) {
+  const nfd = toNFD(char);
+  const base = baseChar(char);
+  const hasDakuten = nfd.includes("\u3099"); // combining voiced sound mark
+  const hasHandakuten = nfd.includes("\u309A"); // combining semi-voiced sound mark
+  
+  if (hasDakuten) {
+    return { base: base, mark: "゛", hasMark: true };
+  } else if (hasHandakuten) {
+    return { base: base, mark: "゜", hasMark: true };
+  } else {
+    return { base: char, mark: null, hasMark: false };
+  }
+}
+
 function highlightNextKey() {
   // まず全部リセット
   document.querySelectorAll(".key").forEach(k => k.classList.remove("next"));
@@ -233,9 +250,17 @@ function highlightNextKey() {
   // 小文字の場合の処理
   if (isShiftChar) {
     // Shiftキーが押されていない場合：Shiftキーを光らせる
-    if (!shiftPressed) {
-      const shiftEl = [...document.querySelectorAll(".key")].find(k => k.dataset.key === "Shift");
-      if (shiftEl) shiftEl.classList.add("next");
+    if (!shiftLeftPressed && !shiftRightPressed) {
+      // 「ぁ，ぃ，ぅ，ぇ，っ」の場合は右シフトを光らせる
+      const rightShiftChars = ["ぁ", "ぃ", "ぅ", "ぇ", "っ"];
+      if (rightShiftChars.includes(targetChar)) {
+        const shiftRightEl = [...document.querySelectorAll(".key")].find(k => k.dataset.key === "ShiftRight");
+        if (shiftRightEl) shiftRightEl.classList.add("next");
+      } else {
+        // その他の小文字は左シフトを光らせる
+        const shiftLeftEl = [...document.querySelectorAll(".key")].find(k => k.dataset.key === "ShiftLeft");
+        if (shiftLeftEl) shiftLeftEl.classList.add("next");
+      }
       return; // Shiftキーを光らせたら終了
     }
     // Shiftキーが押されている場合：小文字のキーを光らせる
@@ -252,7 +277,8 @@ function highlightNextKey() {
   if (el) el.classList.add("next");
 }
 
-let shiftPressed = false;
+let shiftLeftPressed = false;
+let shiftRightPressed = false;
 
 function renderKeyboard(rows){
   const homeKeys = ["は","ま"]; // ホームポジション
@@ -278,7 +304,16 @@ function renderKeyboard(rows){
         span.classList.add("group-default");
       }
       span.dataset.key = k;
-      span.textContent = k==="Space"?"␣":k;
+      // Shiftキーの表示テキストを設定
+      if(k==="ShiftLeft") {
+        span.textContent = "Shift";
+      } else if(k==="ShiftRight") {
+        span.textContent = "Shift";
+      } else if(k==="Space") {
+        span.textContent = "␣";
+      } else {
+        span.textContent = k;
+      }
       rowDiv.appendChild(span);
     });
     keyboardDiv.appendChild(rowDiv);
@@ -297,10 +332,24 @@ function showProblem(){
   targetGraphemes = toGraphemes(text);
   wrongIndices = new Set();
   typedKanaString = ""; // かな文字列をリセット
+  
+  // 濁点付き文字を基本文字と濁点に分けて表示
   for(let ch of targetGraphemes){
-    const span = document.createElement("span");
-    span.textContent=ch;
-    problemDiv.appendChild(span);
+    const split = splitDakutenChar(ch);
+    // 基本文字のspan
+    const baseSpan = document.createElement("span");
+    baseSpan.textContent = split.base;
+    baseSpan.dataset.isBase = "true";
+    problemDiv.appendChild(baseSpan);
+    
+    // 濁点がある場合、濁点用のspanを追加
+    if(split.hasMark){
+      const markSpan = document.createElement("span");
+      markSpan.textContent = split.mark;
+      markSpan.dataset.isMark = "true";
+      markSpan.className = "dakuten-mark";
+      problemDiv.appendChild(markSpan);
+    }
   }
   input.value="";
   input.focus();
@@ -372,27 +421,100 @@ function updateDisplay() {
   let prefixLen = 0;
   const limit = Math.min(typedG.length, targetGraphemes.length);
   for(let i=0;i<limit;i++){
-    if(toNFC(typedG[i]) === toNFC(targetGraphemes[i])) prefixLen++;
-    else break;
+    if(toNFC(typedG[i]) === toNFC(targetGraphemes[i])) {
+      prefixLen++;
+    } else {
+      // 濁点付き文字の入力途中かどうかをチェック
+      const targetChar = targetGraphemes[i];
+      const typedChar = typedG[i];
+      const targetBase = baseChar(targetChar);
+      const typedNFC = toNFC(typedChar);
+      const targetNFC = toNFC(targetChar);
+      
+      // 目標文字が濁点付きで、入力済み文字がそのベース文字と一致する場合は、まだ入力途中とみなす
+      const isDakutenTarget = targetNFC !== toNFC(targetBase);
+      const isBaseMatch = typedNFC === toNFC(targetBase);
+      
+      if(isDakutenTarget && isBaseMatch){
+        // 濁点入力途中なので、一致として扱う（prefixLenには含めないが、correctとして表示）
+        break;
+      } else {
+        break;
+      }
+    }
   }
 
-  // 表示の更新: 先頭一致をcorrect、それ以降で入力済み領域をwrong
-  spans.forEach((span,i)=>{
-    if(i<prefixLen){
-      span.className = "correct";
-    }else if(i<typedG.length){
-      span.className = "wrong";
-      wrongIndices.add(i); // 実際に赤く表示したインデックスを記録
-    }else{
-      span.className = "";
+  // 表示の更新: 基本文字と濁点を個別に処理
+  let spanIndex = 0; // 実際のspan要素のインデックス
+  wrongIndices.clear(); // リセット
+  
+  for(let i=0; i<targetGraphemes.length; i++){
+    const targetChar = targetGraphemes[i];
+    const split = splitDakutenChar(targetChar);
+    const baseSpan = spans[spanIndex++];
+    const markSpan = split.hasMark ? spans[spanIndex] : null;
+    
+    // 基本文字の処理
+    if(i < prefixLen){
+      // 完全一致
+      baseSpan.className = "correct";
+      if(markSpan && markSpan.dataset.isMark === "true"){
+        markSpan.className = "correct";
+      }
+    } else if(i < typedG.length){
+      // 入力済み領域
+      const typedChar = typedG[i];
+      const typedNFC = toNFC(typedChar);
+      const targetNFC = toNFC(targetChar);
+      const targetBase = baseChar(targetChar);
+      
+      const isDakutenTarget = split.hasMark;
+      const isBaseMatch = toNFC(typedChar) === toNFC(targetBase);
+      
+      if(isDakutenTarget && isBaseMatch){
+        // 基本文字は一致しているが、濁点が入力されていない
+        baseSpan.className = "correct";
+        
+        // 次の文字が既に入力されている場合（濁点をスキップしてしまった場合）
+        if(i+1 < typedG.length){
+          // 濁点部分だけをwrongとして表示
+          if(markSpan && markSpan.dataset.isMark === "true"){
+            markSpan.className = "wrong";
+            wrongIndices.add(i);
+          }
+        }
+        // 次の文字がまだ入力されていない場合は、濁点部分は何も表示しない（correctでもwrongでもない）
+      } else if(typedNFC === targetNFC){
+        // 完全一致（濁点も含めて）
+        baseSpan.className = "correct";
+        if(markSpan && markSpan.dataset.isMark === "true"){
+          markSpan.className = "correct";
+        }
+      } else {
+        // 不一致
+        baseSpan.className = "wrong";
+        wrongIndices.add(i);
+        if(markSpan && markSpan.dataset.isMark === "true"){
+          markSpan.className = "wrong";
+        }
+      }
+    } else {
+      // 未入力領域
+      baseSpan.className = "";
+      if(markSpan && markSpan.dataset.isMark === "true"){
+        markSpan.className = "";
+      }
     }
-  });
-
-  // 赤く光ったインデックス（不一致箇所）を記録
-  for(let i=0;i<limit;i++){
-    if(toNFC(typedG[i]) !== toNFC(targetGraphemes[i])){
-      wrongIndices.add(i);
+    
+    // 濁点のspanがある場合はインデックスを進める
+    if(split.hasMark){
+      spanIndex++;
     }
+  }
+  
+  // 残りのspanをリセット（入力が短すぎる場合）
+  for(let i=spanIndex; i<spans.length; i++){
+    spans[i].className = "";
   }
 
   // 正確さ: 一度でも赤くなったユニークな文字数の割合で算出
@@ -411,6 +533,7 @@ function updateDisplay() {
     totalTime += elapsedSec;
     totalAccuracy += accuracy;
     totalSpeed += charsPerMin;
+    totalChars += targetGraphemes.length; // 総文字数を累積
 
     current++;
     if(current<problems.length) showProblem();
@@ -437,8 +560,8 @@ input.addEventListener("keydown", (e) => {
     return;
   }
   
-  // Shiftキーとの組み合わせをチェック
-  const mapping = e.shiftKey ? keyCodeToKanaShift : keyCodeToKana;
+  // Shiftキーとの組み合わせをチェック（左右どちらのShiftでも動作）
+  const mapping = (shiftLeftPressed || shiftRightPressed) ? keyCodeToKanaShift : keyCodeToKana;
   kanaChar = mapping[keyCode];
   
   if(kanaChar) {
@@ -447,27 +570,45 @@ input.addEventListener("keydown", (e) => {
   
   // キーボード表示用の処理（既存のコード）
   const key = e.key===" "? "Space" : e.key==="Enter"?"Enter":e.key;
-  if(e.key==="Shift") {
-    shiftPressed = true;
+  if(e.code==="ShiftLeft") {
+    shiftLeftPressed = true;
+    renderKeyboard(shiftRows);
+    // Shiftキーが押されたら、次のキーのハイライトを更新
+    highlightNextKey();
+  } else if(e.code==="ShiftRight") {
+    shiftRightPressed = true;
     renderKeyboard(shiftRows);
     // Shiftキーが押されたら、次のキーのハイライトを更新
     highlightNextKey();
   }
+  const displayKeyCode = e.code==="ShiftLeft" ? "ShiftLeft" : e.code==="ShiftRight" ? "ShiftRight" : key;
   document.querySelectorAll(".key").forEach(k=>{
-    if(k.dataset.key===key) k.classList.add("active");
+    if(k.dataset.key===displayKeyCode) k.classList.add("active");
   });
 });
 
 input.addEventListener("keyup", (e) => {
   const key = e.key===" "? "Space" : e.key==="Enter"?"Enter":e.key;
-  if(e.key==="Shift") {
-    shiftPressed = false;
-    renderKeyboard(normalRows);
+  if(e.code==="ShiftLeft") {
+    shiftLeftPressed = false;
+    // どちらのShiftキーも離されていない場合のみ通常レイアウトに戻す
+    if (!shiftRightPressed) {
+      renderKeyboard(normalRows);
+    }
+    // Shiftキーが離されたら、次のキーのハイライトを更新
+    highlightNextKey();
+  } else if(e.code==="ShiftRight") {
+    shiftRightPressed = false;
+    // どちらのShiftキーも離されていない場合のみ通常レイアウトに戻す
+    if (!shiftLeftPressed) {
+      renderKeyboard(normalRows);
+    }
     // Shiftキーが離されたら、次のキーのハイライトを更新
     highlightNextKey();
   }
+  const displayKeyCode = e.code==="ShiftLeft" ? "ShiftLeft" : e.code==="ShiftRight" ? "ShiftRight" : key;
   document.querySelectorAll(".key").forEach(k=>{
-    if(k.dataset.key===key) k.classList.remove("active");
+    if(k.dataset.key===displayKeyCode) k.classList.remove("active");
   });
 });
 
@@ -553,7 +694,10 @@ function showScore(){
   if(howTo) howTo.style.display = "none"; // スコア画面では非表示
   avgTime.textContent = (totalTime/problems.length).toFixed(2);
   avgAccuracy.textContent = (totalAccuracy/problems.length).toFixed(1);
-  avgSpeed.textContent = (totalSpeed/problems.length).toFixed(0);
+  // 正確な平均速度: 総文字数 ÷ 総時間（分）
+  const totalTimeMin = totalTime / 60;
+  const accurateAvgSpeed = totalTimeMin > 0 ? Math.floor(totalChars / totalTimeMin) : 0;
+  avgSpeed.textContent = accurateAvgSpeed.toFixed(0);
   // スコアを計算して表示
   const score = computeFinalScore();
   if(finalScore) finalScore.textContent = score;
@@ -566,6 +710,15 @@ function showScore(){
   if(submitBtn){
     submitBtn.dataset.locked = "0";
     submitBtn.style.pointerEvents = "auto";
+  }
+
+  // ログイン済みの場合は名前を自動入力
+  if (playerNameInput && window.currentUserDisplayName) {
+    playerNameInput.value = window.currentUserDisplayName;
+    playerNameInput.readOnly = false; // 編集可能にする
+  } else if (playerNameInput) {
+    playerNameInput.value = "";
+    playerNameInput.readOnly = false;
   }
 
   // ランキング参加条件: ちょうど100問クリア時のみ投稿可
@@ -597,7 +750,7 @@ startBtn.addEventListener("click",()=>{
     return;
   }
   problems = generateProblems(count);
-  current=0; totalTime=0; totalAccuracy=0; totalSpeed=0;
+  current=0; totalTime=0; totalAccuracy=0; totalSpeed=0; totalChars=0;
   startScreen.style.display="none";
   gameArea.style.display="block";
   scoreScreen.style.display="none";
@@ -623,32 +776,324 @@ restartBtn.addEventListener("click",()=>{
 // ----------------------------
 document.addEventListener("keydown",(e)=>{
   const key = e.key===" "? "Space" : e.key==="Enter"?"Enter":e.key;
-  if(e.key==="Shift") {
-    shiftPressed = true;
+  if(e.code==="ShiftLeft") {
+    shiftLeftPressed = true;
+    renderKeyboard(shiftRows);
+    // Shiftキーが押されたら、次のキーのハイライトを更新
+    highlightNextKey();
+  } else if(e.code==="ShiftRight") {
+    shiftRightPressed = true;
     renderKeyboard(shiftRows);
     // Shiftキーが押されたら、次のキーのハイライトを更新
     highlightNextKey();
   }
+  const displayKeyCode = e.code==="ShiftLeft" ? "ShiftLeft" : e.code==="ShiftRight" ? "ShiftRight" : key;
   document.querySelectorAll(".key").forEach(k=>{
-    if(k.dataset.key===key) k.classList.add("active");
+    if(k.dataset.key===displayKeyCode) k.classList.add("active");
   });
 });
 
 document.addEventListener("keyup",(e)=>{
   const key = e.key===" "? "Space" : e.key==="Enter"?"Enter":e.key;
-  if(e.key==="Shift") {
-    shiftPressed = false;
-    renderKeyboard(normalRows);
+  if(e.code==="ShiftLeft") {
+    shiftLeftPressed = false;
+    // どちらのShiftキーも離されていない場合のみ通常レイアウトに戻す
+    if (!shiftRightPressed) {
+      renderKeyboard(normalRows);
+    }
+    // Shiftキーが離されたら、次のキーのハイライトを更新
+    highlightNextKey();
+  } else if(e.code==="ShiftRight") {
+    shiftRightPressed = false;
+    // どちらのShiftキーも離されていない場合のみ通常レイアウトに戻す
+    if (!shiftLeftPressed) {
+      renderKeyboard(normalRows);
+    }
     // Shiftキーが離されたら、次のキーのハイライトを更新
     highlightNextKey();
   }
+  const displayKeyCode = e.code==="ShiftLeft" ? "ShiftLeft" : e.code==="ShiftRight" ? "ShiftRight" : key;
   document.querySelectorAll(".key").forEach(k=>{
-    if(k.dataset.key===key) k.classList.remove("active");
+    if(k.dataset.key===displayKeyCode) k.classList.remove("active");
   });
 });
 
 // ----------------------------
-// 9. Supabase 連携（スコア投稿 & ランキング取得）
+// 9. ユーザー認証機能
+// ----------------------------
+const authMessage = document.getElementById("authMessage");
+const loginBtn = document.getElementById("loginBtn");
+const registerBtn = document.getElementById("registerBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const loginEmail = document.getElementById("loginEmail");
+const loginPassword = document.getElementById("loginPassword");
+const loginSubmitBtn = document.getElementById("loginSubmitBtn");
+const loginCancelBtn = document.getElementById("loginCancelBtn");
+const loginStatus = document.getElementById("loginStatus");
+const registerName = document.getElementById("registerName");
+const registerEmail = document.getElementById("registerEmail");
+const registerPassword = document.getElementById("registerPassword");
+const registerSubmitBtn = document.getElementById("registerSubmitBtn");
+const registerCancelBtn = document.getElementById("registerCancelBtn");
+const registerStatus = document.getElementById("registerStatus");
+
+// 認証状態を確認してUIを更新
+async function checkAuthStatus() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // ログイン済み
+      authMessage.textContent = `ログイン中: ${user.email || 'ユーザー'}`;
+      loginBtn.style.display = "none";
+      registerBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      loginForm.style.display = "none";
+      registerForm.style.display = "none";
+      
+      // ユーザーメタデータから表示名を取得
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("display_name")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (profile && profile.display_name) {
+        // 表示名を保存してスコア画面で使用
+        window.currentUserDisplayName = profile.display_name;
+      } else {
+        // メタデータから取得を試みる
+        const metadata = user.user_metadata;
+        if (metadata && metadata.display_name) {
+          window.currentUserDisplayName = metadata.display_name;
+        } else {
+          window.currentUserDisplayName = user.email?.split("@")[0] || "ユーザー";
+        }
+      }
+    } else {
+      // 未ログイン
+      authMessage.textContent = "ゲストでプレイ中";
+      loginBtn.style.display = "inline-block";
+      registerBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+      loginForm.style.display = "none";
+      registerForm.style.display = "none";
+      window.currentUserDisplayName = null;
+    }
+  } catch (error) {
+    console.error("認証状態の確認に失敗しました:", error);
+    authMessage.textContent = "ゲストでプレイ中";
+    loginBtn.style.display = "inline-block";
+    registerBtn.style.display = "inline-block";
+    logoutBtn.style.display = "none";
+  }
+}
+
+// ログイン
+async function handleLogin() {
+  const email = loginEmail.value.trim();
+  const password = loginPassword.value.trim();
+  
+  if (!email || !password) {
+    loginStatus.textContent = "メールアドレスとパスワードを入力してください";
+    loginStatus.style.color = "#ff5555";
+    return;
+  }
+  
+  try {
+    loginStatus.textContent = "ログイン中...";
+    loginStatus.style.color = "#fff";
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) {
+      loginStatus.textContent = "ログインに失敗しました: " + error.message;
+      loginStatus.style.color = "#ff5555";
+      return;
+    }
+    
+    loginStatus.textContent = "ログイン成功！";
+    loginStatus.style.color = "#00ff00";
+    loginForm.style.display = "none";
+    loginEmail.value = "";
+    loginPassword.value = "";
+    
+    await checkAuthStatus();
+  } catch (error) {
+    loginStatus.textContent = "ログインに失敗しました";
+    loginStatus.style.color = "#ff5555";
+  }
+}
+
+// ユーザー登録
+async function handleRegister() {
+  const name = registerName.value.trim();
+  const email = registerEmail.value.trim();
+  const password = registerPassword.value.trim();
+  
+  if (!name || !email || !password) {
+    registerStatus.textContent = "すべての項目を入力してください";
+    registerStatus.style.color = "#ff5555";
+    return;
+  }
+  
+  if (password.length < 6) {
+    registerStatus.textContent = "パスワードは6文字以上で入力してください";
+    registerStatus.style.color = "#ff5555";
+    return;
+  }
+  
+  if (name.length > 20) {
+    registerStatus.textContent = "表示名は20文字以内で入力してください";
+    registerStatus.style.color = "#ff5555";
+    return;
+  }
+  
+  try {
+    registerStatus.textContent = "登録中...";
+    registerStatus.style.color = "#fff";
+    
+    // ユーザー登録
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: name
+        }
+      }
+    });
+    
+    if (authError) {
+      registerStatus.textContent = "登録に失敗しました: " + authError.message;
+      registerStatus.style.color = "#ff5555";
+      return;
+    }
+    
+    if (authData.user) {
+      // ユーザープロファイルテーブルに表示名を保存
+      const { error: profileError } = await supabase
+        .from("user_profiles")
+        .insert({
+          user_id: authData.user.id,
+          display_name: name,
+          email: email
+        });
+      
+      if (profileError) {
+        console.error("プロファイル保存エラー:", profileError);
+        // エラーでも続行（メタデータには保存されている）
+      }
+      
+      registerStatus.textContent = "登録成功！ログインしました";
+      registerStatus.style.color = "#00ff00";
+      registerForm.style.display = "none";
+      registerName.value = "";
+      registerEmail.value = "";
+      registerPassword.value = "";
+      
+      await checkAuthStatus();
+    }
+  } catch (error) {
+    registerStatus.textContent = "登録に失敗しました";
+    registerStatus.style.color = "#ff5555";
+  }
+}
+
+// ログアウト
+async function handleLogout() {
+  try {
+    await supabase.auth.signOut();
+    window.currentUserDisplayName = null;
+    await checkAuthStatus();
+  } catch (error) {
+    console.error("ログアウトに失敗しました:", error);
+  }
+}
+
+// イベントリスナー
+if (loginBtn) {
+  loginBtn.addEventListener("click", () => {
+    loginForm.style.display = "block";
+    registerForm.style.display = "none";
+  });
+}
+
+if (registerBtn) {
+  registerBtn.addEventListener("click", () => {
+    registerForm.style.display = "block";
+    loginForm.style.display = "none";
+  });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", handleLogout);
+}
+
+if (loginSubmitBtn) {
+  loginSubmitBtn.addEventListener("click", handleLogin);
+}
+
+if (loginCancelBtn) {
+  loginCancelBtn.addEventListener("click", () => {
+    loginForm.style.display = "none";
+    loginEmail.value = "";
+    loginPassword.value = "";
+    loginStatus.textContent = "";
+  });
+}
+
+if (registerSubmitBtn) {
+  registerSubmitBtn.addEventListener("click", handleRegister);
+}
+
+if (registerCancelBtn) {
+  registerCancelBtn.addEventListener("click", () => {
+    registerForm.style.display = "none";
+    registerName.value = "";
+    registerEmail.value = "";
+    registerPassword.value = "";
+    registerStatus.textContent = "";
+  });
+}
+
+// Enterキーで送信
+if (loginEmail && loginPassword) {
+  loginEmail.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
+  loginPassword.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
+}
+
+if (registerName && registerEmail && registerPassword) {
+  registerName.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleRegister();
+  });
+  registerEmail.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleRegister();
+  });
+  registerPassword.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleRegister();
+  });
+}
+
+// 認証状態の変更を監視
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+    checkAuthStatus();
+  }
+});
+
+// 初回ロード時に認証状態を確認
+checkAuthStatus();
+
+// ----------------------------
+// 10. Supabase 連携（スコア投稿 & ランキング取得）
 // ----------------------------
 const submitBtn = document.getElementById("submitScoreBtn");
 const playerNameInput = document.getElementById("playerName");

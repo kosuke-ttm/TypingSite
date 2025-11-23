@@ -2,7 +2,7 @@ body {
   font-family:"メイリオ", monospace;
   text-align:center;
   padding:40px;
-  background: linear-gradient(-45deg,#ff6ec4,#7873f5,#42e695,#ffeb3b);
+  background: linear-gradient(-45deg,#b83d8a,#4a46a3,#259a5c,#b3a326);
   background-size:400% 400%;
   animation: gradientBG 15s ease infinite;
   color:#fff;
@@ -29,6 +29,7 @@ h1 {text-shadow:2px 2px 6px #000;}
 .correct { color:#00ff00; text-shadow:0 0 8px #00ff00,0 0 12px #00ff00; transition:0.1s; }
 .wrong { color:#ff5555; text-shadow:0 0 8px #ff5555,0 0 12px #ff5555; animation: blink 0.3s alternate infinite; }
 @keyframes blink { 0% {opacity:1;} 50% {opacity:0.3;} 100% {opacity:1;} }
+.dakuten-mark { display: inline-block; }
 
 #input {
   font-size:20px;
@@ -73,31 +74,25 @@ h1 {text-shadow:2px 2px 6px #000;}
 .key.group-default { background:#555; } /* 特殊キーなど - グレー */
 
 .key.special { width:40px; font-size: 7px;}
+.key[data-key="ShiftLeft"], .key[data-key="ShiftRight"] { 
+  width: 80px; 
+  font-size: 12px;
+}
 .key.active { background:#ff0 !important; color:#000; text-shadow:0 0 10px #fff; }
 .key.home {
-  /* ホームポジション：グループの色を維持しつつ、ボーダーと影で強調 */
+  /* ホームポジション：控えめに強調 */
   font-weight: bold;
-  border: 3px solid #ffd700 !important; /* ゴールドの太いボーダー */
+  border: 3px solid #333 !important; /* ゴールドのボーダー */
   border-radius: 5px;
-  box-shadow: 0 0 12px #ffd700, 0 0 6px #ffd700, inset 0 0 8px rgba(255, 215, 0, 0.4) !important; /* ゴールドのグロー効果 */
+  box-shadow: 0 0 4px rgba(255, 215, 0, 0.5), inset 0 0 4px rgba(255, 215, 0, 0.2) !important; /* 控えめなグロー効果 */
   transition: all 0.2s;
-  animation: homePulse 2s ease-in-out infinite;
-}
-
-@keyframes homePulse {
-  0%, 100% { 
-    box-shadow: 0 0 12px #ffd700, 0 0 6px #ffd700, inset 0 0 8px rgba(255, 215, 0, 0.4);
-  }
-  50% { 
-    box-shadow: 0 0 18px #ffd700, 0 0 10px #ffd700, inset 0 0 12px rgba(255, 215, 0, 0.6);
-  }
 }
 
 .key.home.active {
   background-color: #ff0 !important;
   border-color: #ff0;
-  box-shadow: 0 0 15px #ff0, inset 0 0 10px rgba(255, 255, 0, 0.5);
-  transform: scale(1.1);
+  box-shadow: 0 0 6px rgba(255, 255, 0, 0.6), inset 0 0 4px rgba(255, 255, 0, 0.3);
+  transform: scale(1.05);
 }
 
 .key.next {
@@ -209,11 +204,6 @@ button:hover { background:#e68900; }
   line-height: 1.8;
 }
 #howTo li { margin: 6px 0; }
-#howTo .tips {
-  margin-top: 12px;
-  font-style: italic;
-  opacity: 0.9;
-}
 
 /* ランキングテーブルスタイル */
 table {
@@ -273,4 +263,55 @@ table td:nth-child(3) {
 table td:last-child {
   font-size: 0.9em;
   color: #ccc;
+}
+
+/* 認証セクションのスタイル */
+#authSection {
+  margin: 20px auto;
+  padding: 15px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 10px;
+  max-width: 500px;
+}
+
+#authStatus {
+  text-align: center;
+}
+
+#authStatus p {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+#authStatus button {
+  margin: 5px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+#loginForm, #registerForm {
+  text-align: center;
+}
+
+#loginForm h3, #registerForm h3 {
+  margin-top: 0;
+  text-shadow: 0 0 5px #fff;
+}
+
+#loginForm input, #registerForm input {
+  background: rgba(255,255,255,0.9);
+  color: #000;
+  border: 2px solid #0f0;
+  border-radius: 5px;
+}
+
+#loginForm input:focus, #registerForm input:focus {
+  outline: none;
+  border-color: #ff0;
+  box-shadow: 0 0 10px #ff0;
+}
+
+#loginStatus, #registerStatus {
+  min-height: 20px;
+  font-size: 14px;
 }
