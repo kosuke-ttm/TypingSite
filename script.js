@@ -1,4 +1,12 @@
 // ----------------------------
+// 0. Supabase初期化チェック
+// ----------------------------
+// supabaseConfig.jsが読み込まれていない場合でもエラーが発生しないようにする
+// typeof演算子は変数が存在しない場合でも"undefined"を返すので安全
+// ただし、script.jsがsupabaseConfig.jsより先に読み込まれる可能性があるため、
+// グローバルスコープでsupabaseを参照する際は注意が必要
+
+// ----------------------------
 // 1. 単語問題生成
 // ----------------------------
 
@@ -327,7 +335,26 @@ renderKeyboard(normalRows);
 // 4. 出題
 // ----------------------------
 function showProblem(){
+  // エラーチェック
+  if(!problems || problems.length === 0){
+    console.error("問題が生成されていません");
+    return;
+  }
+  if(current < 0 || current >= problems.length){
+    console.error(`問題インデックスが範囲外です: current=${current}, problems.length=${problems.length}`);
+    return;
+  }
+  if(!problemDiv){
+    console.error("problemDivが取得できません");
+    return;
+  }
+  
   const text = problems[current];
+  if(!text){
+    console.error(`問題文が空です: current=${current}`);
+    return;
+  }
+  
   problemDiv.innerHTML="";
   targetGraphemes = toGraphemes(text);
   wrongIndices = new Set();
@@ -741,24 +768,28 @@ function showScore(){
 // ----------------------------
 // 7. スタート / リスタート
 // ----------------------------
-startBtn.addEventListener("click",()=>{
-  const raw = document.getElementById("questionCount").value;
-  const count = Number(raw);
-  const isInteger = Number.isInteger(count);
-  if(!isInteger || count < 1){
-    alert("問題数は1以上の整数を入力してください。");
-    return;
-  }
-  problems = generateProblems(count);
-  current=0; totalTime=0; totalAccuracy=0; totalSpeed=0; totalChars=0;
-  startScreen.style.display="none";
-  gameArea.style.display="block";
-  scoreScreen.style.display="none";
-  // トップランキングはゲーム中は非表示
-  if(topLeaderboard) topLeaderboard.style.display = "none";
-  if(howTo) howTo.style.display = "none"; // ゲーム開始時は非表示
-  showProblem();
-});
+if(startBtn){
+  startBtn.addEventListener("click",()=>{
+    const raw = document.getElementById("questionCount").value;
+    const count = Number(raw);
+    const isInteger = Number.isInteger(count);
+    if(!isInteger || count < 1){
+      alert("問題数は1以上の整数を入力してください。");
+      return;
+    }
+    problems = generateProblems(count);
+    current=0; totalTime=0; totalAccuracy=0; totalSpeed=0; totalChars=0;
+    startScreen.style.display="none";
+    gameArea.style.display="block";
+    scoreScreen.style.display="none";
+    // トップランキングはゲーム中は非表示
+    if(topLeaderboard) topLeaderboard.style.display = "none";
+    if(howTo) howTo.style.display = "none"; // ゲーム開始時は非表示
+    showProblem();
+  });
+} else {
+  console.error("startBtnが取得できません");
+}
 
 restartBtn.addEventListener("click",()=>{
   startScreen.style.display="block";
@@ -842,6 +873,19 @@ const registerStatus = document.getElementById("registerStatus");
 // 認証状態を確認してUIを更新
 async function checkAuthStatus() {
   try {
+    // supabaseオブジェクトが存在しない場合はゲストモードで続行
+    // windowオブジェクト経由で安全にチェック
+    if(typeof window.supabase === 'undefined' || typeof supabase === 'undefined' || !supabase){
+      authMessage.textContent = "ゲストでプレイ中";
+      loginBtn.style.display = "inline-block";
+      registerBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+      loginForm.style.display = "none";
+      registerForm.style.display = "none";
+      window.currentUserDisplayName = null;
+      return;
+    }
+    
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       // ログイン済み
@@ -892,6 +936,18 @@ async function checkAuthStatus() {
 
 // ログイン
 async function handleLogin() {
+  try {
+    if(typeof window.supabase === 'undefined' || typeof supabase === 'undefined' || !supabase){
+      loginStatus.textContent = "認証機能は利用できません（設定が必要です）";
+      loginStatus.style.color = "#ff5555";
+      return;
+    }
+  } catch(e) {
+    loginStatus.textContent = "認証機能は利用できません（設定が必要です）";
+    loginStatus.style.color = "#ff5555";
+    return;
+  }
+  
   const email = loginEmail.value.trim();
   const password = loginPassword.value.trim();
   
@@ -930,6 +986,18 @@ async function handleLogin() {
 
 // ユーザー登録
 async function handleRegister() {
+  try {
+    if(typeof window.supabase === 'undefined' || typeof supabase === 'undefined' || !supabase){
+      registerStatus.textContent = "認証機能は利用できません（設定が必要です）";
+      registerStatus.style.color = "#ff5555";
+      return;
+    }
+  } catch(e) {
+    registerStatus.textContent = "認証機能は利用できません（設定が必要です）";
+    registerStatus.style.color = "#ff5555";
+    return;
+  }
+  
   const name = registerName.value.trim();
   const email = registerEmail.value.trim();
   const password = registerPassword.value.trim();
@@ -1006,6 +1074,10 @@ async function handleRegister() {
 // ログアウト
 async function handleLogout() {
   try {
+    if(typeof window.supabase === 'undefined' || typeof supabase === 'undefined' || !supabase){
+      console.warn("Supabaseが設定されていません");
+      return;
+    }
     await supabase.auth.signOut();
     window.currentUserDisplayName = null;
     await checkAuthStatus();
@@ -1083,9 +1155,19 @@ if (registerName && registerEmail && registerPassword) {
 }
 
 // 認証状態の変更を監視
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-    checkAuthStatus();
+// DOMContentLoadedイベントで実行することで、supabaseConfig.jsの読み込みを待つ
+document.addEventListener("DOMContentLoaded", () => {
+  // supabaseが定義されているか確認（windowオブジェクト経由で安全にチェック）
+  if(typeof window.supabase !== 'undefined' && window.supabase && typeof supabase !== 'undefined' && supabase){
+    try {
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+          checkAuthStatus();
+        }
+      });
+    } catch(err) {
+      console.warn("認証状態の監視を開始できませんでした:", err);
+    }
   }
 });
 
@@ -1125,6 +1207,17 @@ function computeFinalScore(){
 
 async function submitScore(){
   try{
+    // supabaseオブジェクトが存在しない場合は早期リターン
+    try {
+      if(typeof window.supabase === 'undefined' || typeof supabase === 'undefined' || !supabase){
+        if(submitStatus) submitStatus.textContent = "ランキング機能は利用できません（設定が必要です）";
+        return;
+      }
+    } catch(e) {
+      if(submitStatus) submitStatus.textContent = "ランキング機能は利用できません（設定が必要です）";
+      return;
+    }
+    
     // 二重送信ガード
     if(hasSubmitted || isSubmitting || (submitBtn && submitBtn.dataset.locked === "1")){
       if(submitStatus) submitStatus.textContent = hasSubmitted ? "既に送信済みです" : "送信中です...";
@@ -1181,13 +1274,57 @@ async function submitScore(){
 
 async function fetchLeaderboard(){
   try{
+    // supabaseオブジェクトが存在しない場合は早期リターン
+    try {
+      if(typeof window.supabase === 'undefined' || typeof supabase === 'undefined' || !supabase || supabase === null){
+        if(leaderboardList) leaderboardList.textContent = "ランキング機能は利用できません（設定が必要です）";
+        if(topLeaderboardList) topLeaderboardList.textContent = "ランキング機能は利用できません（設定が必要です）";
+        return;
+      }
+    } catch(e) {
+      if(leaderboardList) leaderboardList.textContent = "ランキング機能は利用できません（設定が必要です）";
+      if(topLeaderboardList) topLeaderboardList.textContent = "ランキング機能は利用できません（設定が必要です）";
+      return;
+    }
+    
     if(leaderboardList) leaderboardList.textContent = "読み込み中...";
     if(topLeaderboardList) topLeaderboardList.textContent = "読み込み中...";
-    const { data, error } = await supabase
+    
+    // タイムアウトを設定（5秒に短縮）
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error("タイムアウト: ランキングの取得に時間がかかりすぎています")), 5000);
+    });
+    
+    const fetchPromise = supabase
       .from("typing_scores")
       .select("name, score, avg_time, total_time, cpm, created_at")
       .order("score", { ascending:false })
       .limit(20);
+    
+    // Promise.raceでタイムアウトとフェッチを競争させる
+    let result;
+    try {
+      result = await Promise.race([fetchPromise, timeoutPromise]);
+      // タイムアウトをクリア（正常に完了した場合）
+      if(timeoutId) clearTimeout(timeoutId);
+    } catch (timeoutError) {
+      // タイムアウトの場合
+      if(timeoutId) clearTimeout(timeoutId);
+      if(leaderboardList) leaderboardList.textContent = timeoutError.message || "タイムアウト: ランキングの取得に時間がかかりすぎています";
+      if(topLeaderboardList) topLeaderboardList.textContent = timeoutError.message || "タイムアウト: ランキングの取得に時間がかかりすぎています";
+      return;
+    }
+    
+    // resultがundefinedの場合はエラーとして扱う
+    if(!result){
+      if(leaderboardList) leaderboardList.textContent = "ランキングの取得に失敗しました";
+      if(topLeaderboardList) topLeaderboardList.textContent = "ランキングの取得に失敗しました";
+      return;
+    }
+    
+    const { data, error } = result;
+    
     if(error){
       if(leaderboardList) leaderboardList.textContent = "取得に失敗しました: " + error.message;
       if(topLeaderboardList) topLeaderboardList.textContent = "取得に失敗しました: " + error.message;
@@ -1265,8 +1402,13 @@ async function fetchLeaderboard(){
       topLeaderboardList.appendChild(frag2);
     }
   }catch(err){
-    if(leaderboardList) leaderboardList.textContent = "取得に失敗しました";
-    if(topLeaderboardList) topLeaderboardList.textContent = "取得に失敗しました";
+    console.error("ランキング取得エラー:", err);
+    const errorMessage = err.message || "取得に失敗しました";
+    if(leaderboardList) leaderboardList.textContent = errorMessage;
+    if(topLeaderboardList) topLeaderboardList.textContent = errorMessage;
+    // テーブルを非表示にして、エラーメッセージを表示
+    if(topLeaderboardTable) topLeaderboardTable.style.display = "none";
+    if(leaderboardTable) leaderboardTable.style.display = "none";
   }
 }
 
@@ -1274,7 +1416,14 @@ if(submitBtn){
   submitBtn.addEventListener("click", submitScore);
 }
 
-// 初回ロード時にトップランキングを取得
+// 初回ロード時にトップランキングを取得（エラーが発生してもゲームは開始できるようにする）
 document.addEventListener("DOMContentLoaded", () => {
-  fetchLeaderboard();
+  // ランキング取得は非同期で実行し、エラーが発生してもゲーム開始をブロックしない
+  // setTimeoutで少し遅延させて、他の初期化処理を優先させる
+  setTimeout(() => {
+    fetchLeaderboard().catch(err => {
+      console.error("初回ランキング取得エラー:", err);
+      // エラーが発生してもゲームは開始できるようにする
+    });
+  }, 100);
 });
