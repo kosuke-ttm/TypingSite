@@ -24,6 +24,7 @@ h1 {text-shadow:2px 2px 6px #000;}
   width:80%;
   background: rgba(0,0,0,0.6);
   color:#eee;
+  white-space: pre-wrap;
 }
 
 .correct { color:#00ff00; text-shadow:0 0 8px #00ff00,0 0 12px #00ff00; transition:0.1s; }
