@@ -47,6 +47,14 @@
     </div>
   </div>
   
+  <p>レベルを選択してください：</p>
+  <select id="difficultyLevel">
+    <option value="easy">かんたん（単語）</option>
+    <option value="normal" selected>ふつう（短文）</option>
+    <option value="hard">むずかしい（長文）</option>
+    <option value="allkeys">全キー網羅（練習用）</option>
+  </select>
+  <p style="font-size:14px; opacity:0.9;">※ レベルが上がるほど1問の文章が長くなります。</p>
   <p>問題数を入力してください：</p>
   <input type="number" id="questionCount" min="1" step="1" value="5">
   <button id="startBtn">スタート</button>
@@ -99,7 +107,7 @@
   <!-- <input type="text" id="input" autocomplete="off" autofocus> -->
   <input id="input" type="text" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly>
   <div id="status">
-    <p>問題番号: <span id="questionNumber">1</span></p>
+    <p id="remainingCountText">残り0問</p>
     <p>正確さ: <span id="accuracy">100%</span></p>
     <p>速度: <span id="speed">0 文字/分</span></p>
   </div>
@@ -149,6 +157,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabaseConfig.js" onerror="console.warn('supabaseConfig.jsが読み込めませんでした。ランキング機能と認証機能は利用できません。')"></script>
+<script src="problems.js" onerror="console.warn('problems.jsが読み込めませんでした。最小問題セットで起動します。')"></script>
 <script src="script.js"></script>
 </body>
 </html>

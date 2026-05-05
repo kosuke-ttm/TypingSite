@@ -10,27 +10,63 @@
 // 1. 単語問題生成
 // ----------------------------
 
-// 単語リスト（例として簡略化。実際は1000個以上用意）
-const words = [
-  "ねこ","いぬ","とり","ひと","やま","かわ","まち","くるま","でんしゃ","がっこう",
-  "さかな","はな","くさ","とけい","ほん","つくえ","いす","みず","そら","たいよう",
-  "き","み","あし","はし","かぜ","ゆき","ひかり","つき","ほし","かお",
-  "みみ","くち","め","て","あたま","てんき","そと","うみ","やさい","くだもの",
-  "さくら","もも","ばら","うめ","きりん","ぞう","さる","とら","うま","ねずみ",
-  "とけい","はなび","かばん","えんぴつ","じしょ","がっき","ほんだな","まくら","いえ","へや",
-  "みせ","えき","こうえん","びょういん","がっこう","しんぶん","でんわ",
-  "えいが","うた","おんがく","しごと","やすみ","きょう","あした","きのう","せんせい","がくせい",
-  "ともだち","かぞく","いしゃ","けんきゅうしゃ","せいと","せんぱい","こうはい","かいしゃ","まち","むら",
-  "かわ","うみ","やま","もり","はな","き","くさ","そら","たいよう","つき"
-];
+const fallbackProblemPools = {
+  easy: ["ねこ", "いぬ", "やま", "かわ", "そら"],
+  normal: ["きょうはてんきがよいです", "ともだちとこうえんであそびます"],
+  hard: ["まいにちすこしずつでもれんしゅうをつづけるとたしかにじょうたつしていきます"],
+  allkeys: [
+    "ぬまのふねで、あさのうえをおよぎ、よるにはわらってぽんとはねます。",
+    "たてのいすにすわると、かんなをもつなつのにわで、らむねをせっせとのみます。",
+    "ちいさなとしょしつで、きくのはまのりのれきしろまんです。",
+    "つぎのさくぶんは、そらひろくこみちもねるまえにめをとじるはなしです。",
+    "「ふぁ、ふぃ、ふぅ、ふぇ、ふぉ」とゃゅょのれんしゅうをし、をかしなこえでわらいます。",
+    "「たてぃすとのせりふー」をよんで、ろじのへやへもどります。",
+    "っというあいずで、さっとそとのひかりをみて、こえをひそめます。",
+    "きょうは、そら うみ やま をゆっくりあるいてめぐります。",
+    "あい\nうえ",
+    "がぎぐげご、ざじずぜぞ、だぢづでど、ばびぶべぼ、ぱぴぷぺぽ。"
+  ]
+};
+
+const loadedProblemPools = (typeof window !== "undefined" && window.problemPools) ? window.problemPools : null;
+const problemPools = loadedProblemPools || fallbackProblemPools;
+
+if(!loadedProblemPools){
+  console.warn("problems.js が見つからないため、最小のフォールバック問題を使用します。");
+}
 
 function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
-// 問題を単語単位で生成
-function generateProblems(count){
+function normalizeProblemPool(pool){
+  if(!Array.isArray(pool)) return [];
+  return pool.map(item => String(item).trim()).filter(Boolean);
+}
+
+function getProblemPoolByLevel(level){
+  const easyPool = normalizeProblemPool(problemPools.easy);
+  const normalPool = normalizeProblemPool(problemPools.normal);
+  const hardPool = normalizeProblemPool(problemPools.hard);
+  const allkeysPool = normalizeProblemPool(problemPools.allkeys);
+
+  if(level === "easy" && easyPool.length) return easyPool;
+  if(level === "hard" && hardPool.length) return hardPool;
+  if(level === "allkeys" && allkeysPool.length) return allkeysPool;
+  if(normalPool.length) return normalPool;
+  if(easyPool.length) return easyPool;
+  if(hardPool.length) return hardPool;
+  return allkeysPool;
+}
+
+// レベルに応じた問題を生成
+function generateProblems(count, level){
+  const pool = getProblemPoolByLevel(level);
+  if(level === "allkeys"){
+    // 全キー網羅モードは問題数入力を無視して、定義順で1周固定
+    return [...pool];
+  }
   let problems = [];
   for(let i=0;i<count;i++){
-    problems.push(choice(words)); // 1問 = 単語1つ
+    problems.push(choice(pool));
   }
   return problems;
 }
@@ -45,7 +81,7 @@ const gameArea = document.getElementById("gameArea");
 const scoreScreen = document.getElementById("scoreScreen");
 const problemDiv = document.getElementById("problem");
 const input = document.getElementById("input");
-const qNum = document.getElementById("questionNumber");
+const remainingCountText = document.getElementById("remainingCountText");
 const acc = document.getElementById("accuracy");
 const speed = document.getElementById("speed");
 const avgTime = document.getElementById("avgTime");
@@ -54,6 +90,7 @@ const avgSpeed = document.getElementById("avgSpeed");
 const finalScore = document.getElementById("finalScore");
 const keyboardDiv = document.getElementById("keyboard");
 const howTo = document.getElementById("howTo");
+const difficultyLevel = document.getElementById("difficultyLevel");
 
 let problems=[], current=0, startTime=null;
 let totalTime=0, totalAccuracy=0, totalSpeed=0;
@@ -61,6 +98,8 @@ let totalChars=0; // 総文字数を記録（正確な平均速度計算用）
 let targetGraphemes=[]; // 現在の問題文をグラフェム単位に分割した配列
 let wrongIndices = new Set(); // 今問で一度でも赤くなったインデックス
 let typedKanaString = ""; // 物理キー入力から変換したかな文字列（入力モードに依存しない）
+let keyPressCount = 0; // 今問で押したキー回数（Backspace除外）
+let typoCount = 0; // 今問のタイポ回数
 
 // ----------------------------
 // グラフェム分割 & 正規化ユーティリティ
@@ -90,6 +129,33 @@ function getFirstMismatchIndex(typedG, targetG){
     if(toNFC(typedG[i]) !== toNFC(targetG[i])) return i;
   }
   return n;
+}
+
+// 入力進捗を解析（濁点入力途中も進捗として扱う）
+function analyzeTypingProgress(typedG, targetG){
+  let completed = 0;
+  let hasPartialDakuten = false;
+  const n = Math.min(typedG.length, targetG.length);
+  for(let i=0; i<n; i++){
+    if(toNFC(typedG[i]) === toNFC(targetG[i])){
+      completed++;
+      continue;
+    }
+    const targetBase = baseChar(targetG[i]);
+    const isDakutenTarget = toNFC(targetG[i]) !== toNFC(targetBase);
+    const isBaseMatch = toNFC(typedG[i]) === toNFC(targetBase);
+    if(isDakutenTarget && isBaseMatch){
+      hasPartialDakuten = true;
+    }
+    break;
+  }
+  return { completed, hasPartialDakuten };
+}
+
+function hasProgressed(before, after){
+  if(after.completed > before.completed) return true;
+  if(after.completed === before.completed && !before.hasPartialDakuten && after.hasPartialDakuten) return true;
+  return false;
 }
 
 function getDakutenKeyFromNFD(nfd){
@@ -359,6 +425,8 @@ function showProblem(){
   targetGraphemes = toGraphemes(text);
   wrongIndices = new Set();
   typedKanaString = ""; // かな文字列をリセット
+  keyPressCount = 0;
+  typoCount = 0;
   
   // 濁点付き文字を基本文字と濁点に分けて表示
   for(let ch of targetGraphemes){
@@ -381,7 +449,10 @@ function showProblem(){
   input.value="";
   input.focus();
   startTime=null;
-  qNum.textContent = current+1;
+  if(remainingCountText){
+    const remaining = Math.max(0, problems.length - (current + 1));
+    remainingCountText.textContent = `残り${remaining}問`;
+  }
 
   highlightNextKey();
 }
@@ -403,6 +474,10 @@ function processKanaInput(kanaChar) {
   
   // 通常の文字入力
   if(kanaChar && kanaChar.length > 0) {
+    keyPressCount++;
+    const beforeProgress = analyzeTypingProgress(toGraphemes(typedKanaString), targetGraphemes);
+    let isTypo = false;
+
     // 濁点・半濁点の処理
     if(kanaChar === "゛") {
       if(typedKanaString.length > 0) {
@@ -411,10 +486,10 @@ function processKanaInput(kanaChar) {
           typedKanaString = typedKanaString.slice(0, -1) + dakutenMap[lastChar];
         } else {
           // 濁点が適用できない場合は無視
-          return;
+          isTypo = true;
         }
       } else {
-        return;
+        isTypo = true;
       }
     } else if(kanaChar === "゜") {
       if(typedKanaString.length > 0) {
@@ -423,15 +498,24 @@ function processKanaInput(kanaChar) {
           typedKanaString = typedKanaString.slice(0, -1) + handakutenMap[lastChar];
         } else {
           // 半濁点が適用できない場合は無視
-          return;
+          isTypo = true;
         }
       } else {
-        return;
+        isTypo = true;
       }
     } else {
       typedKanaString += kanaChar;
     }
-    
+
+    if(!isTypo){
+      const afterProgress = analyzeTypingProgress(toGraphemes(typedKanaString), targetGraphemes);
+      if(!hasProgressed(beforeProgress, afterProgress)){
+        isTypo = true;
+      }
+    }
+    if(isTypo){
+      typoCount++;
+    }
     updateDisplay();
   }
 }
@@ -544,9 +628,10 @@ function updateDisplay() {
     spans[i].className = "";
   }
 
-  // 正確さ: 一度でも赤くなったユニークな文字数の割合で算出
-  const wrongCount = wrongIndices.size;
-  const accuracy = targetGraphemes.length>0 ? Math.max(0, Math.floor((1 - wrongCount/targetGraphemes.length)*100)) : 100;
+  // 正確さ: キー押下回数(Backspace除外)に対するタイポ割合で算出
+  const accuracy = keyPressCount > 0
+    ? Math.max(0, Math.floor((1 - typoCount/keyPressCount)*100))
+    : 100;
   acc.textContent = accuracy+"%";
 
   const elapsedMin = (Date.now()-startTime)/60000;
@@ -587,8 +672,8 @@ input.addEventListener("keydown", (e) => {
     return;
   }
   
-  // Shiftキーとの組み合わせをチェック（左右どちらのShiftでも動作）
-  const mapping = (shiftLeftPressed || shiftRightPressed) ? keyCodeToKanaShift : keyCodeToKana;
+  // 入力変換はイベント時点のShift状態を使う（フラグ取りこぼし対策）
+  const mapping = e.shiftKey ? keyCodeToKanaShift : keyCodeToKana;
   kanaChar = mapping[keyCode];
   
   if(kanaChar) {
@@ -771,13 +856,20 @@ function showScore(){
 if(startBtn){
   startBtn.addEventListener("click",()=>{
     const raw = document.getElementById("questionCount").value;
-    const count = Number(raw);
-    const isInteger = Number.isInteger(count);
-    if(!isInteger || count < 1){
-      alert("問題数は1以上の整数を入力してください。");
+    const selectedLevel = difficultyLevel ? difficultyLevel.value : "normal";
+    const count = selectedLevel === "allkeys" ? 0 : Number(raw);
+    if(selectedLevel !== "allkeys"){
+      const isInteger = Number.isInteger(count);
+      if(!isInteger || count < 1){
+        alert("問題数は1以上の整数を入力してください。");
+        return;
+      }
+    }
+    problems = generateProblems(count, selectedLevel);
+    if(!problems.length){
+      alert("問題文が設定されていません。problems.js を確認してください。");
       return;
     }
-    problems = generateProblems(count);
     current=0; totalTime=0; totalAccuracy=0; totalSpeed=0; totalChars=0;
     startScreen.style.display="none";
     gameArea.style.display="block";
